@@ -1,0 +1,2 @@
+[OK] del /q/f/s %TEMP%\*
+[OK] ipconfig /flushdns

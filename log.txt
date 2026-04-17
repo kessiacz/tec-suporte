@@ -1,0 +1,2 @@
+Executado: wmic cpu get loadpercentage
+Executado: wmic OS get FreePhysicalMemory
