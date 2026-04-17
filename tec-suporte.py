@@ -53,29 +53,29 @@ def barra_progresso(stop_event, mensagem="Processando"):
 # EXECUTAR
 # =========================
 def executar(comando, mensagem="Executando", mostrar_saida=False):
-    stop_event = threading.Event()
-
     try:
-        if not mostrar_saida:
+        if mostrar_saida:
+            print(f"\n[{mensagem}]...\n")
+
+            subprocess.run(f'start cmd /k "{comando}"', shell=True)
+
+        else:
+            stop_event = threading.Event()
             t = threading.Thread(target=barra_progresso, args=(stop_event, mensagem))
             t.start()
 
             subprocess.run(comando, shell=True,
                            stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL,
-                           check=True)
+                           stderr=subprocess.DEVNULL)
 
             stop_event.set()
             t.join()
-        else:
-            print(f"\n{mensagem}...\n")
-            subprocess.run(comando, shell=True, check=True)
 
-        log(f"[OK] {comando}")
+        log(f"OK: {comando}")
 
-    except subprocess.CalledProcessError:
-        print(f"\n[ERRO] Falha ao executar: {comando}")
-        log(f"[ERRO] {comando}")
+    except Exception as e:
+        print(f"\n[ERRO] {e}")
+        log(f"ERRO: {e}")
 
     pause()
 
