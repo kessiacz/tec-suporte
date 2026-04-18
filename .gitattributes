@@ -1,0 +1,5 @@
+*.txt linguist-detectable=false
+*.html linguist-detectable=false
+*.tex linguist-detectable=false
+
+venv/* linguist-vendored
