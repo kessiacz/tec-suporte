@@ -2,6 +2,22 @@
 
 Script desenvolvido em Python para automatizar tarefas comuns de suporte técnico, manutenção de sistema, diagnóstico de rede e reparo de arquivos do Windows.
 
+## Versões do Projeto
+O projeto está dividido em duas etapas de desenvolvimento:
+
+### v1: Versão CLI (Linha de Comando)
+- Arquivos: `tec-suporte-v1.py` e `tec-suporte-v1.exe` (na pasta dist)
+- Interface: Terminal clássico.
+- Foco: Execução leve, direta e baseada em menus numéricos.
+
+### v2: Versão GUI (Interface Gráfica)
+- Arquivos: `tec-suporte-v2.py` e `tec-suporte-v2.exe` (na pasta dist)
+- Interface: Desenvolvida em CustomTkinter.
+- Dashboard de Monitoramento: Indicadores de uso de CPU, RAM e Logs em tempo real.
+- Multi-threading: As ferramentas rodam em segundo plano, evitando que a interface trave durante processos longos.
+- Log Integrado: Visualização do histórico de comandos diretamente na tela principal.
+- Seletor de Temas: Alternância entre modos Dark, Light e System.
+
 ## Funcionalidades Principais
 1. Manutenção: Limpeza de arquivos temporários e cache de DNS.
 2. Gestão de Rede: Reset completo de stack TCP/IP, renovação de IP, teste de conexão e visualização de perfis Wi-Fi.
