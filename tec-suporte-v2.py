@@ -1,17 +1,19 @@
 import customtkinter as ctk
 import psutil
-import os
 import subprocess
 import threading
 import sys
 import ctypes
-import platform
 import re
+import base64
+import time
 from datetime import datetime
 
 # CONFIGURAÇÃO DE APARÊNCIA
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
+
+CREATE_NO_WINDOW = 0x08000000
 
 class SuporteTecnicoGUI(ctk.CTk):
     def __init__(self):
@@ -21,6 +23,8 @@ class SuporteTecnicoGUI(ctk.CTk):
         largura_janela = 1100
         altura_janela = 500
 
+        self.executando_servico = False
+
         self.centralizar_janela(largura_janela, altura_janela)
 
         self.grid_rowconfigure(1, weight=1)
@@ -28,6 +32,7 @@ class SuporteTecnicoGUI(ctk.CTk):
 
         self.menu_hover = None
         self.ultimo_grupo_clicado = None
+        self.ultimo_log_foi_separador = False
 
         # ================= MENU SUPERIOR =================
         self.barra_superior = ctk.CTkFrame(self, height=50, corner_radius=0)
@@ -67,7 +72,7 @@ class SuporteTecnicoGUI(ctk.CTk):
         # LOGS
         self.log_frame = ctk.CTkFrame(self.main_frame)
         self.log_frame.grid(row=0, column=1, sticky="nsew")
-        self.log_text = ctk.CTkTextbox(self.log_frame, font=("Consolas", 12), text_color=("black", "white"), fg_color=("white", "gray15"))
+        self.log_text = ctk.CTkTextbox(self.log_frame, font=("Consolas", 12), text_color=("black", "white"), fg_color=("white", "gray15"), state="disabled")
         self.log_text.pack(expand=True, fill="both", padx=10, pady=10)
 
         self.bind("<Button-1>", self.clique_fora)
@@ -120,14 +125,13 @@ class SuporteTecnicoGUI(ctk.CTk):
                 ("Serviços Travados", lambda: self.executar_cmd("services.msc")),
                 ("Eventos Críticos", self.eventos_criticos)
             ],
-            "FERRAMENTAS": [
-                ("Painel de Controle", self.abrir_painel),
-                ("Gerar Relatório", self.gerar_relatorio)
-            ],
             "DIAGNÓSTICO": [
                 ("Saúde do Sistema", self.diagnostico_saude),
                 ("Verificar Drivers", self.verificar_drivers),
-                ("Gerar Relatório Full", self.gerar_relatorio)
+            ],
+            "FERRAMENTAS": [
+                ("Painel de Controle", self.abrir_painel),
+                ("Gerar Relatório", self.gerar_relatorio)
             ]
         }
 
@@ -142,44 +146,129 @@ class SuporteTecnicoGUI(ctk.CTk):
         if self.ultimo_grupo_clicado == grupo:
             self.fechar_menu()
             return
+
         self.fechar_menu()
         self.ultimo_grupo_clicado = grupo
-        self.menu_hover = ctk.CTkFrame(self, corner_radius=8, border_width=1, fg_color=("gray90", "gray20"), border_color=("gray70", "gray30"))
+
+        # Frame do menu
+        self.menu_hover = ctk.CTkFrame(
+            self,
+            corner_radius=8,
+            border_width=1,
+            fg_color=("gray90", "gray20"),
+            border_color=("gray70", "gray30")
+        )
+
+        btn_ref = None
         for child in self.barra_superior.winfo_children():
-            if getattr(child, '_nome_grupo', None) == grupo:
-                x, y = child.winfo_x(), child.winfo_y() + child.winfo_height() + 5
-                child.configure(fg_color="gray30")
+            if getattr(child, "_nome_grupo", None) == grupo:
+                btn_ref = child
+                child.configure(fg_color=("gray70", "gray30"))
                 break
-        self.menu_hover.place(x=x, y=y)
-        self.menu_hover.lift()
+
+        if not btn_ref: return
+        self.update_idletasks()
+        x = btn_ref.winfo_rootx() - self.winfo_rootx()
+        y = btn_ref.winfo_rooty() - self.winfo_rooty() + btn_ref.winfo_height()
+
+        # Opções
         for texto, comando in self.menus_data[grupo]:
-            btn = ctk.CTkButton(self.menu_hover, text=texto, command=lambda c=comando: self.clicar_opcao(c),
-                                fg_color="transparent", hover_color=("gray80", "gray30"), text_color=("black", "white"), anchor="w", height=30)
+            btn = ctk.CTkButton(
+                self.menu_hover,
+                text=texto,
+                command=lambda cmd=comando: self.clicar_opcao(cmd),
+                fg_color="transparent",
+                anchor="w",
+                height=30
+            )
             btn.pack(fill="x", padx=5, pady=2)
+
+        self.after(100, lambda: self._mostrar_menu(x, y))
+
+    def _mostrar_menu(self, x, y):
+        if self.menu_hover:
+            self.menu_hover.place(x=x, y=y)
+            self.menu_hover.lift()
 
     def clique_fora(self, event):
         if self.menu_hover:
-            x, y = event.x, event.y
-            m_x, m_y = self.menu_hover.winfo_x(), self.menu_hover.winfo_y()
-            if not (m_x <= x <= m_x + self.menu_hover.winfo_width() and m_y <= y <= m_y + self.menu_hover.winfo_height()):
-                if y > 50: self.fechar_menu()
+            y_clique = event.y_root - self.winfo_rooty()
+            if y_clique <= self.barra_superior.winfo_height():
+                return
+            
+            m_x = self.menu_hover.winfo_x()
+            m_y = self.menu_hover.winfo_y()
+            m_w = self.menu_hover.winfo_width()
+            m_h = self.menu_hover.winfo_height()
+
+            x_clique = event.x_root - self.winfo_rootx()
+
+            if not (m_x <= x_clique <= m_x + m_w and m_y <= y_clique <= m_y + m_h):
+                self.fechar_menu()
 
     def fechar_menu(self):
-        if self.menu_hover: self.menu_hover.destroy(); self.menu_hover = None
+        if self.menu_hover:
+            self.menu_hover.destroy()
+            self.menu_hover = None
+        
         self.ultimo_grupo_clicado = None
+        
         for child in self.barra_superior.winfo_children():
             if isinstance(child, ctk.CTkButton):
                 child.configure(fg_color="transparent")
 
     def clicar_opcao(self, comando):
+        print(f"Chamando função: {comando}")
         self.fechar_menu()
         comando()
 
     # ================= FUNÇÕES DE EXECUÇÃO =================
 
-    def log(self, msg):
+    def log(self, msg, nivel="INFO"):
         ts = datetime.now().strftime("%H:%M:%S")
-        self.log_text.insert("end", f"[{ts}] {msg}\n"); self.log_text.see("end")
+        linha = f"[{ts}] [{nivel}] {msg}\n"
+
+        def _write():
+            self.log_text.configure(state="normal")
+            start_index = self.log_text.index("end-1c")
+            self.log_text.insert("end", linha)
+            end_index = self.log_text.index("end-1c")
+
+            tag = None
+            cor = None
+
+            if nivel == "ERRO":
+                tag, cor = "erro", "red"
+            elif nivel == "OK":
+                tag, cor = "ok", "green"
+            elif nivel == "WARN":
+                tag, cor = "warn", "orange"
+
+            # aplica cor apenas na linha correta
+            if tag:
+                self.log_text.tag_add(tag, start_index, end_index)
+                self.log_text.tag_config(tag, foreground=cor)
+
+            self.log_text.configure(state="disabled")
+            self.log_text.see("end")
+
+        self.after(0, _write)
+
+    def run_thread(self, func):
+        if self.executando_servico:
+            self.log("Aguarde o serviço atual finalizar!", nivel="WARN")
+            return
+
+        def wrapper():
+            self.executando_servico = True
+            try:
+                func()
+            except Exception as e:
+                self.log(f"Erro na thread: {e}", nivel="ERRO")
+            finally:
+                self.executando_servico = False
+        
+        threading.Thread(target=wrapper, daemon=True).start()
 
     def executar_cmd(self, cmd):
         def run():
@@ -189,7 +278,7 @@ class SuporteTecnicoGUI(ctk.CTk):
                 shell=True, 
                 capture_output=True, 
                 text=True, 
-                creationflags=0x08000000 
+                creationflags=CREATE_NO_WINDOW
             )
             
             # Resultado no log interno
@@ -198,10 +287,10 @@ class SuporteTecnicoGUI(ctk.CTk):
             if processo.stderr:
                 self.log(f"Erro:\n{processo.stderr}")
 
-        threading.Thread(target=run, daemon=True).start()
+        self.run_thread(run)
 
     def atualizar_dados(self):
-        self.cpu_label.configure(text=f"CPU: {psutil.cpu_percent()}%")
+        self.cpu_label.configure(text=f"CPU: {psutil.cpu_percent(interval=None)}%")
         self.ram_label.configure(text=f"RAM: {psutil.virtual_memory().percent}%")
         self.after(1000, self.atualizar_dados)
 
@@ -214,7 +303,7 @@ class SuporteTecnicoGUI(ctk.CTk):
             self.log("--- Status de Rede Atual ---")
             
             #Verifica Internet (Ping)
-            ping = subprocess.run("ping -n 1 8.8.8.8", shell=True, capture_output=True, creationflags=0x08000000)
+            ping = subprocess.run("ping -n 1 8.8.8.8", shell=True, capture_output=True, creationflags=CREATE_NO_WINDOW)
             status_internet = "ONLINE" if ping.returncode == 0 else "OFFLINE"
 
             nome_rede = "Desconectado"
@@ -222,7 +311,7 @@ class SuporteTecnicoGUI(ctk.CTk):
             wifi_info = subprocess.run(
                 "netsh wlan show interfaces", 
                 shell=True, capture_output=True, text=True, encoding='cp850', 
-                creationflags=0x08000000
+                creationflags=CREATE_NO_WINDOW
             )
 
             if " SSID" in wifi_info.stdout:
@@ -232,7 +321,6 @@ class SuporteTecnicoGUI(ctk.CTk):
                         nome_rede = linha.split(":")[1].strip()
                         break
             else:
-                # Se não for Wi-Fi, verifica se há Ethernet ativa via psutil
                 stats = psutil.net_if_stats()
                 for interface, info in stats.items():
                     if info.isup and "loopback" not in interface.lower():
@@ -246,90 +334,149 @@ class SuporteTecnicoGUI(ctk.CTk):
             self.log(f"REDE ATUAL: {nome_rede}")
             self.log("----------------------------")
 
-        threading.Thread(target=run, daemon=True).start()
+        self.run_thread(run)
 
     def listar_redes_wifi(self):
         def run():
-            self.log("--- Redes Wi-Fi Salvas no Dispositivo ---")
+            self.log("--- Redes Wi-Fi no Dispositivo ---")
             try:
+                interface_info = subprocess.run(
+                    "netsh wlan show interfaces", 
+                    shell=True, capture_output=True, text=True, encoding='cp850', 
+                    creationflags=CREATE_NO_WINDOW
+                ).stdout
+                
+                ssid_atual = ""
+                for linha in interface_info.split('\n'):
+                    if " SSID" in linha and "BSSID" not in linha:
+                        ssid_atual = linha.split(":")[1].strip()
+                        break
+
                 resultado = subprocess.run(
                     "netsh wlan show profiles", 
-                    shell=True, 
-                    capture_output=True, 
-                    creationflags=0x08000000
-                )
-                saida = resultado.stdout.decode('cp850', errors='ignore')
+                    shell=True, capture_output=True, text=True, encoding='cp850',
+                    creationflags=CREATE_NO_WINDOW
+                ).stdout
                 
-                padrao = r":\s*(.*)"
-                linhas = saida.split('\n')
+                perfis = re.findall(r"(?:Perfil de Todos os Usuários|All User Profile)\s*:\s*(.*)", resultado)
                 
-                perfis_encontrados = []
-                pode_capturar = False
-                for linha in linhas:
-                    if "---" in linha:
-                        pode_capturar = True
-                        continue
-                    
-                    if pode_capturar:
-                        match = re.search(padrao, linha)
-                        if match:
-                            nome = match.group(1).strip()
-                            if nome and "<" not in nome:
-                                perfis_encontrados.append(nome)
+                if not perfis:
+                    perfis = re.findall(r":\s(.*)", resultado)
+                    if perfis: perfis.pop(0)
 
-                if perfis_encontrados:
-                    for p in sorted(set(perfis_encontrados)): 
-                        self.log(f" > {p}")
-                    self.log(f"\nTotal: {len(set(perfis_encontrados))} redes listadas.")
+                if perfis:
+                    for p in perfis:
+                        p = p.strip()
+                        if p == ssid_atual:
+                            self.log(f" > {p} [CONECTADO]", nivel="OK")
+                        else:
+                            self.log(f" > {p}")
+                    self.log(f"\nTotal: {len(perfis)} redes mapeadas.")
                 else:
-                    self.log("Nenhum perfil identificado na varredura.")
+                    self.log("Nenhum perfil de rede encontrado.", nivel="WARN")
 
             except Exception as e:
-                self.log(f"Erro Crítico: {e}")
+                self.log(f"Erro ao listar redes: {e}", nivel="ERRO")
         
-        threading.Thread(target=run, daemon=True).start()
+        self.run_thread(run)
 
     def renovar_ip(self):
         def run():
-            self.log("Renovando IP..."); subprocess.run("ipconfig /release", shell=True)
-            subprocess.run("ipconfig /renew", shell=True); self.log("IP renovado.")
-        threading.Thread(target=run, daemon=True).start()
+            self.log("Renovando IP...")
+            subprocess.run("ipconfig /release", shell=True, creationflags=CREATE_NO_WINDOW)
+            subprocess.run("ipconfig /renew", shell=True, creationflags=CREATE_NO_WINDOW)
+            
+            self.log("IP renovado.")
+        
+        self.run_thread(run)
 
     def sincronizar_ntp(self):
         def run():
             self.log("Sincronizando com ntp.br...")
-            subprocess.run("net stop w32time", shell=True)
-            subprocess.run('w32tm /config /manualpeerlist:"a.ntp.br b.ntp.br" /syncfromflags:manual /reliable:YES /update', shell=True)
-            subprocess.run("net start w32time", shell=True)
-            subprocess.run("w32tm /resync", shell=True)
+            subprocess.run("net stop w32time", shell=True, creationflags=CREATE_NO_WINDOW)
+            subprocess.run('w32tm /config /manualpeerlist:"a.ntp.br b.ntp.br" /syncfromflags:manual /reliable:YES /update', shell=True, creationflags=CREATE_NO_WINDOW)
+            subprocess.run("net start w32time", shell=True, creationflags=CREATE_NO_WINDOW)
+            subprocess.run("w32tm /resync", shell=True, creationflags=CREATE_NO_WINDOW)
             self.log("Horário sincronizado.")
-        threading.Thread(target=run, daemon=True).start()
+
+        self.run_thread(run)
 
     # SISTEMA
     def limpar_temp(self):
         def run():
             self.log("Limpando temporários...")
-            os.system("del /q/f/s %TEMP%\\* >nul 2>&1")
-            os.system("del /q/f/s C:\\Windows\\Temp\\* >nul 2>&1")
+            subprocess.run("del /q/f/s %TEMP%\\*", shell=True, creationflags=CREATE_NO_WINDOW)
+            subprocess.run("del /q/f/s C:\\Windows\\Temp\\* >nul 2>&1", shell=True, creationflags=CREATE_NO_WINDOW)
             self.log("Limpeza concluída.")
-        threading.Thread(target=run, daemon=True).start()
+        
+        self.run_thread(run)
 
     def limpeza_completa(self):
         def run():
-            self.log("Iniciando Limpeza de Disco (Cleanmgr)...")
-            subprocess.run("cleanmgr /lowdisk /c", shell=True)
-            self.log("Limpeza de disco finalizada ou janela aberta.")
-        threading.Thread(target=run, daemon=True).start()
+            try:
+                self.log("Encerrando Explorer para limpeza profunda...", nivel="WARN")
+                subprocess.run("taskkill /f /im explorer.exe", shell=True, capture_output=True, creationflags=CREATE_NO_WINDOW)
+                time.sleep(1)
+
+                # Script PowerShell
+                ps_script = r"""
+                $ErrorActionPreference = 'SilentlyContinue'
+                
+                # Windows Defender (Arquivos temporários de scan)
+                Remove-Item "C:\ProgramData\Microsoft\Windows Defender\Scans\History\Store\*" -Recurse -Force
+                
+                # DirectX Shader Cache (Melhora performance em jogos/GUI)
+                $dxPath = "$env:LOCALAPPDATA\D3DSCache"
+                if (Test-Path $dxPath) { Remove-Item "$dxPath\*" -Recurse -Force }
+
+                # Relatórios de Erros do Windows (WER)
+                Remove-Item "$env:ALLUSERSPROFILE\Microsoft\Windows\WER\*" -Recurse -Force
+                Remove-Item "$env:LOCALAPPDATA\Microsoft\Windows\WER\*" -Recurse -Force
+
+                # Arquivos de Otimização de Entrega
+                Remove-Item "C:\Windows\SoftwareDistribution\Download\*" -Recurse -Force
+
+                # Caches de Miniaturas e Ícones
+                Get-ChildItem "$env:LOCALAPPDATA\Microsoft\Windows\Explorer" -Filter "*.db" | Remove-Item -Force
+                
+                # Lixeira e Temporários Padrão
+                Clear-RecycleBin -Force
+                Remove-Item "$env:TEMP\*" -Recurse -Force
+                Remove-Item "C:\Windows\Temp\*" -Recurse -Force
+                """
+                
+                ps_bytes = ps_script.encode('utf-16le')
+                ps_base64 = base64.b64encode(ps_bytes).decode('utf-8')
+                
+                self.log("Limpando Defender, DirectX e Logs de Erro...")
+                subprocess.run(f"powershell -EncodedCommand {ps_base64}", shell=True, creationflags=CREATE_NO_WINDOW)
+
+                # Volta o explorer
+                subprocess.run("start explorer.exe", shell=True, creationflags=CREATE_NO_WINDOW)
+                self.log("Interface restaurada. Finalizando otimização DISM...", nivel="OK")
+
+                # Otimização de Componentes
+                subprocess.run("Dism.exe /Online /Cleanup-Image /StartComponentCleanup", shell=True, creationflags=CREATE_NO_WINDOW)
+
+                self.log("Limpeza TOTAL concluída!", nivel="OK")
+
+            except Exception as e:
+                self.log(f"Erro: {str(e)}", nivel="ERRO")
+                subprocess.run("start explorer.exe", shell=True, creationflags=CREATE_NO_WINDOW)
+            finally:
+                self.log("--- PROCESSO FINALIZADO ---")
+
+        self.run_thread(run)
 
     # IMPRESSÃO
     def resetar_spooler(self):
         def run():
             self.log("Resetando Spooler...")
-            # Usando creationflags para ocultar a janela de execução
-            subprocess.run("net stop spooler", shell=True, creationflags=0x08000000)
-            subprocess.run("net start spooler", shell=True, creationflags=0x08000000)
+            subprocess.run("net stop spooler", shell=True, creationflags=CREATE_NO_WINDOW)
+            subprocess.run("net start spooler", shell=True, creationflags=CREATE_NO_WINDOW)
             self.log("Spooler OK.")
-        threading.Thread(target=run, daemon=True).start()
+
+        self.run_thread(run)
 
     # USUARIOS
     def input_box(self, titulo, texto):
@@ -337,13 +484,22 @@ class SuporteTecnicoGUI(ctk.CTk):
         return dialog.get_input()
 
     def desbloquear_usuario(self):
-        u = self.input_box("Desbloquear", "Usuário:"); 
-        if u: self.executar_cmd(f"net user {u} /active:yes")
+        u = self.input_box("Desbloquear", "Usuário:")
+        if u:
+            self.executar_cmd(f"net user {u} /active:yes")
 
     def resetar_senha(self):
-        u = self.input_box("Senha", "Usuário:"); s = self.input_box("Senha", "Nova Senha:")
-        if u and s: self.executar_cmd(f"net user {u} {s}")
+        u = self.input_box("Senha", "Usuário:")
+        s = self.input_box("Senha", "Nova Senha:")
 
+        def run():
+            if u and s:
+                self.log(f"Alterando senha do usuário {u}...")
+                subprocess.run(f'net user {u} "{s}"', shell=True, creationflags=CREATE_NO_WINDOW)
+                self.log("Senha alterada.")
+
+        self.run_thread(run)
+            
     def logoff_forcado(self):
         u = self.input_box("Logoff", "ID da Sessão (ou nome):")
         if u: self.executar_cmd(f"logoff {u}")
@@ -354,13 +510,29 @@ class SuporteTecnicoGUI(ctk.CTk):
 
     # SERVIÇOS
     def processos_pesados(self):
-        procs = sorted(psutil.process_iter(['name', 'cpu_percent']), key=lambda x: x.info['cpu_percent'], reverse=True)[:5]
+        for p in psutil.process_iter():
+            try:
+                p.cpu_percent(None)
+            except:
+                pass
+
+        time.sleep(1)
+
+        procs = []
+        for p in psutil.process_iter(['name']):
+            try:
+                procs.append((p.info['name'], p.cpu_percent(interval=0.1)))
+            except:
+                pass
+
+        procs = sorted(procs, key=lambda x: x[1], reverse=True)[:5]
+
         self.log("Top 5 CPU:")
-        for p in procs: self.log(f"{p.info['name']} - {p.info['cpu_percent']}%")
+        for nome, cpu in procs:
+            self.log(f"{nome} - {cpu}%")
 
     def eventos_criticos(self):
         self.log("Abrindo Event Viewer (Erros Críticos)...")
-        # Abre o visualizador de eventos já filtrando erros
         self.executar_cmd('eventvwr.msc')
 
     # FERRAMENTAS
@@ -374,9 +546,10 @@ class SuporteTecnicoGUI(ctk.CTk):
             self.log(f"Gerando {n}...")
             with open(n, "w") as f:
                 f.write(f"SUPORTE TI - {datetime.now()}\n\n")
-                subprocess.run("systeminfo", shell=True, stdout=f)
+                subprocess.run("systeminfo", shell=True, stdout=f, creationflags=CREATE_NO_WINDOW)
             self.log("Relatório salvo.")
-        threading.Thread(target=run, daemon=True).start()
+        
+        self.run_thread(run)
 
     #DIAGNÓSTICO
     def diagnostico_saude(self):
@@ -385,19 +558,19 @@ class SuporteTecnicoGUI(ctk.CTk):
             score = 100
             alertas = []
 
-            # 1. Teste de Internet
-            t1 = subprocess.run("ping -n 1 8.8.8.8", shell=True, capture_output=True, creationflags=0x08000000)
+            # Teste de Internet
+            t1 = subprocess.run("ping -n 1 8.8.8.8", shell=True, capture_output=True, creationflags=CREATE_NO_WINDOW)
             if t1.returncode != 0:
                 score -= 40
                 alertas.append("Sem acesso à Internet.")
             
-            # 2. Teste de Resolução DNS
-            t2 = subprocess.run("nslookup google.com", shell=True, capture_output=True, text=True, creationflags=0x08000000)
+            # Teste DNS
+            t2 = subprocess.run("nslookup google.com", shell=True, capture_output=True, text=True, creationflags=CREATE_NO_WINDOW)
             if t2.stdout and "Address" not in t2.stdout:
                 score -= 30
                 alertas.append("Falha DNS")
 
-            # 3. Uso de Recursos Críticos
+            # Uso de Recursos Críticos
             if psutil.cpu_percent() > 90:
                 score -= 15
                 alertas.append("Uso de CPU extremamente alto.")
@@ -411,24 +584,16 @@ class SuporteTecnicoGUI(ctk.CTk):
             else:
                 self.log("[OK] Sistema operando dentro dos parâmetros normais.")
         
-        threading.Thread(target=run, daemon=True).start()
+        self.run_thread(run)
 
     def verificar_drivers(self):
-        """Verifica dispositivos com erro usando PowerShell (Substituto do WMIC)."""
         def run():
             self.log("Verificando integridade dos drivers via PowerShell...")
             
             # Comando filtra dispositivos com status diferente de "OK"
             ps_cmd = "Get-PnpDevice | Where-Object { $_.Status -ne 'OK' } | Select-Object FriendlyName, InstanceId, Status | Format-Table"
-            cmd = f'powershell -ExecutionPolicy Bypass -Command "{ps_cmd}"'
-            
-            processo = subprocess.run(
-                cmd, 
-                shell=True, 
-                capture_output=True, 
-                text=True, 
-                creationflags=0x08000000
-            )
+            cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd]
+            processo = subprocess.run(cmd, capture_output=True, text=True, creationflags=CREATE_NO_WINDOW)
             
             # Verifica se houve saída (se o PS retornou algo além de espaços)
             saida = processo.stdout.strip()
@@ -439,7 +604,7 @@ class SuporteTecnicoGUI(ctk.CTk):
             else:
                 self.log("[OK] Todos os drivers estão operando normalmente.")
 
-        threading.Thread(target=run, daemon=True).start()
+        self.run_thread(run)
 
 def is_admin():
     try: return ctypes.windll.shell32.IsUserAnAdmin()
