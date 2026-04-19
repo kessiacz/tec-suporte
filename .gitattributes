@@ -1,0 +1,9 @@
+# Forçar todos os arquivos a serem contados como Python
+* linguist-language=Python
+
+# Excluir explicitamente arquivos que estão sujando a barra
+*.html linguist-detectable=false
+*.tex linguist-detectable=false
+*.txt linguist-detectable=false
+log.txt linguist-documentation
+relatorio.txt linguist-documentation
