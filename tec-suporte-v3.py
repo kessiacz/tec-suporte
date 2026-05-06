@@ -37,8 +37,6 @@ CORES = {
 }
 
 
-
-
 # ─────────────────────────────────────────────
 #  UTILITÁRIOS
 # ─────────────────────────────────────────────
@@ -60,10 +58,11 @@ def hostname():
 class SidebarButton(ctk.CTkFrame):
     """Botão estilo sidebar com ícone + texto + destaque ativo."""
 
-    def __init__(self, parent, icon, label, command, **kwargs):
+    def __init__(self, parent, icon, label, command, fontes, **kwargs):
         super().__init__(parent, fg_color="transparent", corner_radius=8, **kwargs)
         self._active = False
         self._command = command
+        self.FONTES = fontes
         self._default_bg = "transparent"
         self._active_bg = CORES["accent_soft"]
 
@@ -116,7 +115,8 @@ class SidebarButton(ctk.CTkFrame):
 #  WIDGET: CARD DE ESTATÍSTICA
 # ─────────────────────────────────────────────
 class StatCard(ctk.CTkFrame):
-    def __init__(self, parent, icon, label, **kwargs):
+    # CORREÇÃO: parâmetros reordenados — (parent, icon, label, fontes)
+    def __init__(self, parent, icon, label, fontes, **kwargs):
         super().__init__(
             parent,
             fg_color=CORES["bg_tertiary"],
@@ -125,13 +125,21 @@ class StatCard(ctk.CTkFrame):
             border_color=CORES["border"],
             **kwargs
         )
-        self._icon = icon
-        self._label = label
+
+        self.FONTES = fontes
 
         ctk.CTkLabel(self, text=icon, font=ctk.CTkFont(size=18)).pack(pady=(12, 0))
-        self._val = ctk.CTkLabel(self, text="—", font=self.FONTES["stat"], text_color=CORES["text_primary"])
+        self._val = ctk.CTkLabel(
+            self, text="—",
+            font=self.FONTES["stat"],
+            text_color=CORES["text_primary"]
+        )
         self._val.pack()
-        ctk.CTkLabel(self, text=label, font=self.FONTES["stat_label"], text_color=CORES["text_muted"]).pack(pady=(0, 12))
+        ctk.CTkLabel(
+            self, text=label,
+            font=self.FONTES["stat_label"],
+            text_color=CORES["text_muted"]
+        ).pack(pady=(0, 12))
 
     def update(self, value: str, color: str = CORES["text_primary"]):
         self._val.configure(text=value, text_color=color)
@@ -148,18 +156,21 @@ class StatusBadge(ctk.CTkLabel):
         "info":    ("#dbeafe", "#1e3a5f"),
     }
 
+    # CORREÇÃO: removida referência a self.FONTES que não existia;
+    # fonte definida localmente dentro do método set()
     def __init__(self, parent, estado="info", **kwargs):
         super().__init__(parent, **kwargs)
+        self._badge_font = ctk.CTkFont(family="Segoe UI", size=10, weight="bold")
         self.set(estado, kwargs.get("text", ""))
 
-    def set(self, estado, texto):
+    def set(self, estado: str, texto: str):
         fg, tc = self._COLORS.get(estado, self._COLORS["info"])
         self.configure(
             text=f"  {texto}  ",
             fg_color=fg,
             text_color=tc,
             corner_radius=6,
-            font=self.FONTES["badge"],
+            font=self._badge_font,
         )
 
 
@@ -175,15 +186,15 @@ class SuporteTecnicoApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        FONTES = {
-            "titulo":    ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
-            "subtitulo": ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-            "corpo":     ctk.CTkFont(family="Segoe UI", size=12),
-            "pequena":   ctk.CTkFont(family="Segoe UI", size=11),
-            "console":   ctk.CTkFont(family="Consolas", size=12),
-            "badge":     ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
-            "stat":      ctk.CTkFont(family="Segoe UI", size=22, weight="bold"),
-            "stat_label":ctk.CTkFont(family="Segoe UI", size=10),
+        self.FONTES = {
+            "titulo":     ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
+            "subtitulo":  ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            "corpo":      ctk.CTkFont(family="Segoe UI", size=12),
+            "pequena":    ctk.CTkFont(family="Segoe UI", size=11),
+            "console":    ctk.CTkFont(family="Consolas",  size=12),
+            "badge":      ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
+            "stat":       ctk.CTkFont(family="Segoe UI", size=22, weight="bold"),
+            "stat_label": ctk.CTkFont(family="Segoe UI", size=10),
         }
 
         self.title("Suporte Técnico TI")
@@ -192,10 +203,10 @@ class SuporteTecnicoApp(ctk.CTk):
         self.minsize(1000, 600)
 
         # Estado
-        self._executando       = False
-        self._auto_scroll      = True
-        self._sidebar_buttons  = {}
-        self._grupo_ativo      = None
+        self._executando      = False
+        self._auto_scroll     = True
+        self._sidebar_buttons = {}
+        self._grupo_ativo     = None
         self._log_queue: queue.Queue = queue.Queue()
 
         # Construção da interface
@@ -224,7 +235,7 @@ class SuporteTecnicoApp(ctk.CTk):
         )
         self._sidebar.grid(row=0, column=0, sticky="nsew")
         self._sidebar.grid_propagate(False)
-        self._sidebar.grid_rowconfigure(99, weight=1)  # espaçador final
+        self._sidebar.grid_rowconfigure(99, weight=1)
 
         # Área principal (coluna 1)
         self._main = ctk.CTkFrame(self, fg_color=CORES["bg_primary"], corner_radius=0)
@@ -247,10 +258,8 @@ class SuporteTecnicoApp(ctk.CTk):
             anchor="w"
         ).place(relx=0.1, rely=0.5, anchor="w")
 
-        # Separador
         ctk.CTkFrame(self._sidebar, height=1, fg_color=CORES["separator"]).pack(fill="x")
 
-        # Hostname badge
         ctk.CTkLabel(
             self._sidebar,
             text=f"  🖥  {hostname()}",
@@ -270,20 +279,20 @@ class SuporteTecnicoApp(ctk.CTk):
 
         # Grupos do menu
         grupos = {
-            "REDE":       ("🌐", self._grupo_rede),
-            "SISTEMA":    ("💻", self._grupo_sistema),
-            "IMPRESSÃO":  ("🖨", self._grupo_impressao),
-            "USUÁRIOS":   ("👤", self._grupo_usuarios),
-            "SERVIÇOS":   ("⚙",  self._grupo_servicos),
-            "DIAGNÓSTICO":("🔬", self._grupo_diagnostico),
-            "FERRAMENTAS":("🛠", self._grupo_ferramentas),
+            "REDE":        ("🌐", self._grupo_rede),
+            "SISTEMA":     ("💻", self._grupo_sistema),
+            "IMPRESSÃO":   ("🖨", self._grupo_impressao),
+            "USUÁRIOS":    ("👤", self._grupo_usuarios),
+            "SERVIÇOS":    ("⚙",  self._grupo_servicos),
+            "DIAGNÓSTICO": ("🔬", self._grupo_diagnostico),
+            "FERRAMENTAS": ("🛠", self._grupo_ferramentas),
         }
 
         for nome, (icone, fn) in grupos.items():
-            self._add_sidebar_section(nome)
             btn = SidebarButton(
                 self._sidebar, icon=icone, label=nome,
-                command=lambda b, f=fn, n=nome: self._ativar_grupo(b, f, n)
+                command=lambda b, f=fn, n=nome: self._ativar_grupo(b, f, n),
+                fontes=self.FONTES,
             )
             btn.pack(fill="x", padx=8, pady=2)
             self._sidebar_buttons[nome] = btn
@@ -294,8 +303,11 @@ class SuporteTecnicoApp(ctk.CTk):
 
         tema_frame = ctk.CTkFrame(self._sidebar, fg_color="transparent")
         tema_frame.pack(fill="x", padx=12, pady=10)
-        ctk.CTkLabel(tema_frame, text="Tema", font=self.FONTES["pequena"],
-                     text_color=CORES["text_muted"]).pack(side="left")
+        ctk.CTkLabel(
+            tema_frame, text="Tema",
+            font=self.FONTES["pequena"],
+            text_color=CORES["text_muted"]
+        ).pack(side="left")
         ctk.CTkOptionMenu(
             tema_frame,
             values=["Dark", "Light", "System"],
@@ -307,18 +319,12 @@ class SuporteTecnicoApp(ctk.CTk):
             button_hover_color=CORES["accent_hover"],
         ).pack(side="right")
 
-    def _add_sidebar_section(self, _label):
-        """Pequeno espaço antes de cada botão (sem label de seção)."""
-        pass  # visual limpo – sem labels de grupo
-
     def _ativar_grupo(self, btn: SidebarButton, fn, nome: str):
-        # Desativa anterior
         if self._grupo_ativo:
             self._sidebar_buttons[self._grupo_ativo].set_active(False)
-
         self._grupo_ativo = nome
         btn.set_active(True)
-        fn()  # abre submenu/painel
+        fn()
 
     # ── Header ────────────────────────────────
     def _build_header(self):
@@ -332,13 +338,14 @@ class SuporteTecnicoApp(ctk.CTk):
 
         ctk.CTkLabel(
             header, text="Painel de Suporte",
-            font=self.FONTES["titulo"], text_color=CORES["text_primary"]
+            font=self.FONTES["titulo"],
+            text_color=CORES["text_primary"]
         ).pack(side="left", padx=20)
 
-        # Hora / data
         self._hora_lbl = ctk.CTkLabel(
             header, text="",
-            font=self.FONTES["pequena"], text_color=CORES["text_muted"]
+            font=self.FONTES["pequena"],
+            text_color=CORES["text_muted"]
         )
         self._hora_lbl.pack(side="right", padx=20)
         self._atualizar_hora()
@@ -362,10 +369,11 @@ class SuporteTecnicoApp(ctk.CTk):
         inner = ctk.CTkFrame(bar, fg_color="transparent")
         inner.place(relx=0.5, rely=0.5, anchor="center")
 
-        self._cpu_card  = StatCard(inner, "🔄", "CPU")
-        self._ram_card  = StatCard(inner, "🧠", "RAM")
-        self._disk_card = StatCard(inner, "💾", "DISCO")
-        self._net_card  = StatCard(inner, "🌐", "REDE")
+        # CORREÇÃO: ordem correta (parent, icon, label, fontes) para todos os cards
+        self._cpu_card  = StatCard(inner, "🔄", "CPU",   self.FONTES)
+        self._ram_card  = StatCard(inner, "🧠", "RAM",   self.FONTES)
+        self._disk_card = StatCard(inner, "💾", "DISCO", self.FONTES)
+        self._net_card  = StatCard(inner, "🌐", "REDE",  self.FONTES)
 
         for i, card in enumerate((self._cpu_card, self._ram_card, self._disk_card, self._net_card)):
             card.grid(row=0, column=i, padx=8, ipadx=12)
@@ -381,23 +389,23 @@ class SuporteTecnicoApp(ctk.CTk):
         log_outer.grid_rowconfigure(1, weight=1)
         log_outer.grid_columnconfigure(0, weight=1)
 
-        # Toolbar do log
         toolbar = ctk.CTkFrame(log_outer, fg_color="transparent")
         toolbar.grid(row=0, column=0, sticky="ew", padx=10, pady=(8, 0))
 
         ctk.CTkLabel(
             toolbar, text="📋  Log de Execução",
-            font=self.FONTES["subtitulo"], text_color=CORES["text_secondary"]
+            font=self.FONTES["subtitulo"],
+            text_color=CORES["text_secondary"]
         ).pack(side="left")
 
-        # Botões da toolbar
         for txt, cmd in (
-            ("⬇ Exportar",  self._exportar_log),
-            ("🗑 Limpar",   self._limpar_log),
+            ("⬇ Exportar", self._exportar_log),
+            ("🗑 Limpar",  self._limpar_log),
         ):
             ctk.CTkButton(
                 toolbar, text=txt, command=cmd,
-                width=90, height=26, font=self.FONTES["pequena"],
+                width=90, height=26,
+                font=self.FONTES["pequena"],
                 fg_color=CORES["bg_tertiary"],
                 hover_color=CORES["border"],
                 text_color=CORES["text_secondary"],
@@ -405,7 +413,6 @@ class SuporteTecnicoApp(ctk.CTk):
                 corner_radius=6
             ).pack(side="right", padx=4)
 
-        # Auto-scroll toggle
         self._scroll_var = ctk.BooleanVar(value=True)
         ctk.CTkSwitch(
             toolbar, text="Auto-scroll",
@@ -419,7 +426,6 @@ class SuporteTecnicoApp(ctk.CTk):
             command=lambda: setattr(self, "_auto_scroll", self._scroll_var.get())
         ).pack(side="right", padx=8)
 
-        # Caixa de texto
         self._log_text = ctk.CTkTextbox(
             log_outer,
             font=self.FONTES["console"],
@@ -431,7 +437,6 @@ class SuporteTecnicoApp(ctk.CTk):
         )
         self._log_text.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
-        # Tags de cor
         self._log_text.tag_config("ts",   foreground=CORES["text_muted"])
         self._log_text.tag_config("ok",   foreground=CORES["success"])
         self._log_text.tag_config("erro", foreground=CORES["danger"])
@@ -503,19 +508,16 @@ class SuporteTecnicoApp(ctk.CTk):
             end = self._log_text.index("end-1c")
             self._log_text.tag_add("sep", start, end)
         else:
-            # Timestamp
             ts_start = self._log_text.index("end-1c")
             self._log_text.insert("end", f"[{ts}] ")
             ts_end = self._log_text.index("end-1c")
             self._log_text.tag_add("ts", ts_start, ts_end)
 
-            # Ícone + nível
             nivel_start = ts_end
             self._log_text.insert("end", f"{icone} ")
             nivel_end = self._log_text.index("end-1c")
             self._log_text.tag_add(tag, nivel_start, nivel_end)
 
-            # Mensagem
             msg_start = nivel_end
             self._log_text.insert("end", f"{msg}\n")
             msg_end = self._log_text.index("end-1c")
@@ -529,9 +531,14 @@ class SuporteTecnicoApp(ctk.CTk):
 
     def _log_boas_vindas(self):
         self.log("SEP", "SEP")
-        self.log(f"SISTEMA DE SUPORTE TI  |  {hostname()}  |  {datetime.now().strftime('%d/%m/%Y')}", "INFO")
-        self.log(f"Modo Admin: {'✔ Ativo' if is_admin() else '✖ Inativo — algumas funções podem falhar'}", 
-                 "OK" if is_admin() else "WARN")
+        self.log(
+            f"SISTEMA DE SUPORTE TI  |  {hostname()}  |  {datetime.now().strftime('%d/%m/%Y')}",
+            "INFO"
+        )
+        self.log(
+            f"Modo Admin: {'✔ Ativo' if is_admin() else '✖ Inativo — algumas funções podem falhar'}",
+            "OK" if is_admin() else "WARN"
+        )
         self.log("SEP", "SEP")
 
     # ─────────────────────────────────────────────
@@ -564,7 +571,6 @@ class SuporteTecnicoApp(ctk.CTk):
         self.after(0, lambda: self._status_lbl.configure(text=f"  {texto}", text_color=cor))
 
     def _cmd(self, cmd: str, nome: str = None):
-        """Executa comando de shell e loga resultado."""
         def run():
             self.log(f"$ {cmd}", "CMD")
             res = subprocess.run(
@@ -581,7 +587,6 @@ class SuporteTecnicoApp(ctk.CTk):
         self._run(run, nome or cmd[:40])
 
     def _ps(self, script: str, nome: str = "PowerShell"):
-        """Executa script PowerShell codificado em base64."""
         def run():
             self.log(f"[PS] {nome}", "CMD")
             ps_b64 = base64.b64encode(script.encode("utf-16le")).decode()
@@ -601,8 +606,8 @@ class SuporteTecnicoApp(ctk.CTk):
     #  STATS
     # ─────────────────────────────────────────────
     def _atualizar_stats(self):
-        cpu = psutil.cpu_percent(interval=None)
-        ram = psutil.virtual_memory().percent
+        cpu  = psutil.cpu_percent(interval=None)
+        ram  = psutil.virtual_memory().percent
         disk = psutil.disk_usage("/").percent
 
         def _cor(val):
@@ -610,11 +615,10 @@ class SuporteTecnicoApp(ctk.CTk):
             if val >= 70: return CORES["warning"]
             return CORES["success"]
 
-        self._cpu_card.update(f"{cpu:.0f}%", _cor(cpu))
-        self._ram_card.update(f"{ram:.0f}%", _cor(ram))
+        self._cpu_card.update(f"{cpu:.0f}%",  _cor(cpu))
+        self._ram_card.update(f"{ram:.0f}%",  _cor(ram))
         self._disk_card.update(f"{disk:.0f}%", _cor(disk))
 
-        # Velocidade de rede aproximada
         try:
             net = psutil.net_io_counters()
             if hasattr(self, "_net_prev"):
@@ -639,7 +643,6 @@ class SuporteTecnicoApp(ctk.CTk):
             self._painel = None
 
     def _abrir_painel(self, titulo: str, itens: list):
-        """Abre um painel flutuante com botões de ação."""
         self._fechar_painel()
 
         self._painel = ctk.CTkToplevel(self)
@@ -690,14 +693,14 @@ class SuporteTecnicoApp(ctk.CTk):
         self.log("SEP", "SEP")
         self.log("MÓDULO: REDE", "INFO")
         self._abrir_painel("🌐  Rede", [
-            ("Status de Conexão",    self._rede_status),
-            ("Redes Wi-Fi Salvas",   self._rede_wifi_salvas),
-            ("IP / MAC / DNS",       lambda: self._cmd("ipconfig /all", "IP/MAC/DNS")),
-            ("Flush DNS",            lambda: self._cmd("ipconfig /flushdns", "Flush DNS")),
-            ("Renovar IP",           self._rede_renovar_ip),
-            ("Sincronizar NTP",      self._rede_ntp),
-            ("Traceroute 8.8.8.8",   lambda: self._cmd("tracert 8.8.8.8", "Traceroute")),
-            ("Diagnóstico de Rede",  self._rede_diagnostico),
+            ("Status de Conexão",   self._rede_status),
+            ("Redes Wi-Fi Salvas",  self._rede_wifi_salvas),
+            ("IP / MAC / DNS",      lambda: self._cmd("ipconfig /all", "IP/MAC/DNS")),
+            ("Flush DNS",           lambda: self._cmd("ipconfig /flushdns", "Flush DNS")),
+            ("Renovar IP",          self._rede_renovar_ip),
+            ("Sincronizar NTP",     self._rede_ntp),
+            ("Traceroute 8.8.8.8",  lambda: self._cmd("tracert 8.8.8.8", "Traceroute")),
+            ("Diagnóstico de Rede", self._rede_diagnostico),
         ])
 
     def _grupo_sistema(self):
@@ -740,30 +743,30 @@ class SuporteTecnicoApp(ctk.CTk):
             ("Top 5 Processos CPU",  self._svc_processos_pesados),
             ("Top 5 Processos RAM",  self._svc_processos_ram),
             ("Gerenciador de Serv.", lambda: self._cmd("services.msc", "Serviços")),
-            ("Event Viewer",        lambda: self._cmd("eventvwr.msc", "Event Viewer")),
-            ("Eventos Críticos",    self._svc_eventos_criticos),
+            ("Event Viewer",         lambda: self._cmd("eventvwr.msc", "Event Viewer")),
+            ("Eventos Críticos",     self._svc_eventos_criticos),
         ])
 
     def _grupo_diagnostico(self):
         self.log("SEP", "SEP")
         self.log("MÓDULO: DIAGNÓSTICO", "INFO")
         self._abrir_painel("🔬  Diagnóstico", [
-            ("Saúde do Sistema",     self._diag_saude),
-            ("Verificar Drivers",   self._diag_drivers),
-            ("Teste de Memória",    lambda: self._cmd("mdsched", "Memória")),
-            ("SMART de Disco",      self._diag_smart),
-            ("Tempo de Boot",       self._diag_boot_time),
+            ("Saúde do Sistema",   self._diag_saude),
+            ("Verificar Drivers",  self._diag_drivers),
+            ("Teste de Memória",   lambda: self._cmd("mdsched", "Memória")),
+            ("SMART de Disco",     self._diag_smart),
+            ("Tempo de Boot",      self._diag_boot_time),
         ])
 
     def _grupo_ferramentas(self):
         self.log("SEP", "SEP")
         self.log("MÓDULO: FERRAMENTAS", "INFO")
         self._abrir_painel("🛠  Ferramentas", [
-            ("Painel de Controle",  lambda: self._cmd("control", "Painel")),
-            ("Gerenc. de Tarefas",  lambda: self._cmd("taskmgr", "TaskMgr")),
-            ("Editor do Registro",  lambda: self._cmd("regedit", "Regedit")),
-            ("Gerar Relatório",     self._fer_relatorio),
-            ("Abrir Log Externo",   self._fer_abrir_log),
+            ("Painel de Controle", lambda: self._cmd("control", "Painel")),
+            ("Gerenc. de Tarefas", lambda: self._cmd("taskmgr", "TaskMgr")),
+            ("Editor do Registro", lambda: self._cmd("regedit", "Regedit")),
+            ("Gerar Relatório",    self._fer_relatorio),
+            ("Abrir Log Externo",  self._fer_abrir_log),
         ])
 
     # ─────────────────────────────────────────────
@@ -772,13 +775,18 @@ class SuporteTecnicoApp(ctk.CTk):
     def _rede_status(self):
         def run():
             self.log("Verificando conectividade...")
-            ping = subprocess.run("ping -n 1 8.8.8.8", shell=True,
-                                  capture_output=True, creationflags=CREATE_NO_WINDOW)
+            ping = subprocess.run(
+                "ping -n 1 8.8.8.8", shell=True,
+                capture_output=True, creationflags=CREATE_NO_WINDOW
+            )
             internet = ping.returncode == 0
 
-            wifi = subprocess.run("netsh wlan show interfaces", shell=True,
-                                  capture_output=True, text=True, encoding="utf-8", errors="ignore",
-                                  creationflags=CREATE_NO_WINDOW)
+            wifi = subprocess.run(
+                "netsh wlan show interfaces", shell=True,
+                capture_output=True, text=True,
+                encoding="utf-8", errors="ignore",
+                creationflags=CREATE_NO_WINDOW
+            )
             ssid = "—"
             tipo = "Cabo (Ethernet)"
             if " SSID" in wifi.stdout:
@@ -788,14 +796,17 @@ class SuporteTecnicoApp(ctk.CTk):
                         ssid = l.split(":", 1)[1].strip()
                         break
 
-            self.log(f"Internet   : {'ONLINE' if internet else 'OFFLINE'}", "OK" if internet else "ERRO")
+            self.log(f"Internet   : {'ONLINE' if internet else 'OFFLINE'}",
+                     "OK" if internet else "ERRO")
             self.log(f"Conexão    : {tipo}")
             self.log(f"SSID       : {ssid}")
 
-            # Latência
-            res = subprocess.run("ping -n 4 8.8.8.8", shell=True,
-                                 capture_output=True, text=True, encoding="utf-8", errors="ignore",
-                                 creationflags=CREATE_NO_WINDOW)
+            res = subprocess.run(
+                "ping -n 4 8.8.8.8", shell=True,
+                capture_output=True, text=True,
+                encoding="utf-8", errors="ignore",
+                creationflags=CREATE_NO_WINDOW
+            )
             for l in res.stdout.split("\n"):
                 if "Média" in l or "Average" in l:
                     self.log(f"Latência   : {l.strip()}")
@@ -806,18 +817,24 @@ class SuporteTecnicoApp(ctk.CTk):
     def _rede_wifi_salvas(self):
         def run():
             self.log("Listando perfis Wi-Fi salvos...")
-            iface = subprocess.run("netsh wlan show interfaces", shell=True,
-                                   capture_output=True, text=True, encoding="utf-8", errors="ignore",
-                                   creationflags=CREATE_NO_WINDOW).stdout
+            iface = subprocess.run(
+                "netsh wlan show interfaces", shell=True,
+                capture_output=True, text=True,
+                encoding="utf-8", errors="ignore",
+                creationflags=CREATE_NO_WINDOW
+            ).stdout
             ssid_atual = ""
             for l in iface.split("\n"):
                 if " SSID" in l and "BSSID" not in l:
                     ssid_atual = l.split(":", 1)[1].strip()
                     break
 
-            res = subprocess.run("netsh wlan show profiles", shell=True,
-                                 capture_output=True, text=True, encoding="utf-8", errors="ignore",
-                                 creationflags=CREATE_NO_WINDOW).stdout
+            res = subprocess.run(
+                "netsh wlan show profiles", shell=True,
+                capture_output=True, text=True,
+                encoding="utf-8", errors="ignore",
+                creationflags=CREATE_NO_WINDOW
+            ).stdout
 
             perfis = re.findall(r"(?:Perfil de Todos os Usuários|All User Profile)\s*:\s*(.*)", res)
             if not perfis:
@@ -864,15 +881,19 @@ class SuporteTecnicoApp(ctk.CTk):
         def run():
             self.log("Diagnóstico de rede completo...")
             testes = [
-                ("Gateway",   "ping -n 2 192.168.1.1"),
+                ("Gateway",    "ping -n 2 192.168.1.1"),
                 ("DNS 8.8.8.8","ping -n 2 8.8.8.8"),
-                ("Google.com","ping -n 2 google.com"),
+                ("Google.com", "ping -n 2 google.com"),
             ]
             for nome, cmd in testes:
-                r = subprocess.run(cmd, shell=True, capture_output=True,
-                                   creationflags=CREATE_NO_WINDOW)
-                self.log(f"{nome:12}: {'OK' if r.returncode == 0 else 'FALHA'}",
-                         "OK" if r.returncode == 0 else "ERRO")
+                r = subprocess.run(
+                    cmd, shell=True, capture_output=True,
+                    creationflags=CREATE_NO_WINDOW
+                )
+                self.log(
+                    f"{nome:12}: {'OK' if r.returncode == 0 else 'FALHA'}",
+                    "OK" if r.returncode == 0 else "ERRO"
+                )
 
         self._run(run, "Diagnóstico de Rede")
 
@@ -896,8 +917,10 @@ class SuporteTecnicoApp(ctk.CTk):
         def run():
             self.log("Iniciando limpeza profunda do sistema...", "WARN")
             self.log("Encerrando Explorer temporariamente...")
-            subprocess.run("taskkill /f /im explorer.exe", shell=True,
-                           capture_output=True, creationflags=CREATE_NO_WINDOW)
+            subprocess.run(
+                "taskkill /f /im explorer.exe", shell=True,
+                capture_output=True, creationflags=CREATE_NO_WINDOW
+            )
             time.sleep(1)
 
             script = r"""
@@ -916,16 +939,20 @@ Remove-Item "C:\Windows\Temp\*"  -Recurse -Force
             self._run_ps_encoded(script)
             subprocess.run("start explorer.exe", shell=True, creationflags=CREATE_NO_WINDOW)
             self.log("Interface restaurada. Executando DISM ComponentCleanup...")
-            subprocess.run("Dism.exe /Online /Cleanup-Image /StartComponentCleanup",
-                           shell=True, creationflags=CREATE_NO_WINDOW)
+            subprocess.run(
+                "Dism.exe /Online /Cleanup-Image /StartComponentCleanup",
+                shell=True, creationflags=CREATE_NO_WINDOW
+            )
             self.log("Limpeza profunda concluída.", "OK")
 
         self._run(run, "Limpeza Avançada")
 
     def _run_ps_encoded(self, script: str):
         b64 = base64.b64encode(script.encode("utf-16le")).decode()
-        subprocess.run(f"powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand {b64}",
-                       shell=True, creationflags=CREATE_NO_WINDOW)
+        subprocess.run(
+            f"powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand {b64}",
+            shell=True, creationflags=CREATE_NO_WINDOW
+        )
 
     # ─────────────────────────────────────────────
     #  IMPLEMENTAÇÕES — IMPRESSÃO
@@ -935,8 +962,10 @@ Remove-Item "C:\Windows\Temp\*"  -Recurse -Force
             self.log("Parando serviço Spooler...")
             subprocess.run("net stop spooler", shell=True, creationflags=CREATE_NO_WINDOW)
             self.log("Limpando fila de impressão...")
-            subprocess.run("del /Q /F /S %systemroot%\\System32\\spool\\PRINTERS\\*",
-                           shell=True, creationflags=CREATE_NO_WINDOW)
+            subprocess.run(
+                "del /Q /F /S %systemroot%\\System32\\spool\\PRINTERS\\*",
+                shell=True, creationflags=CREATE_NO_WINDOW
+            )
             self.log("Reiniciando Spooler...")
             subprocess.run("net start spooler", shell=True, creationflags=CREATE_NO_WINDOW)
             self.log("Spooler reiniciado com sucesso.", "OK")
@@ -950,7 +979,7 @@ Remove-Item "C:\Windows\Temp\*"  -Recurse -Force
     # ─────────────────────────────────────────────
     #  IMPLEMENTAÇÕES — USUÁRIOS
     # ─────────────────────────────────────────────
-    def _input(self, titulo: str, prompt: str) -> str | None:
+    def _input(self, titulo: str, prompt: str):
         d = ctk.CTkInputDialog(text=prompt, title=titulo)
         return d.get_input()
 
@@ -971,11 +1000,13 @@ Remove-Item "C:\Windows\Temp\*"  -Recurse -Force
 
     def _usr_logoff(self):
         u = self._input("Logoff Forçado", "ID ou nome da sessão:")
-        if u: self._cmd(f"logoff {u}", "Logoff Forçado")
+        if u:
+            self._cmd(f"logoff {u}", "Logoff Forçado")
 
     def _usr_add_admin(self):
         u = self._input("Adicionar Administrador", "Nome do usuário:")
-        if u: self._cmd(f"net localgroup administrators {u} /add", "Add Admin")
+        if u:
+            self._cmd(f"net localgroup administrators {u} /add", "Add Admin")
 
     # ─────────────────────────────────────────────
     #  IMPLEMENTAÇÕES — SERVIÇOS
@@ -988,13 +1019,17 @@ Remove-Item "C:\Windows\Temp\*"  -Recurse -Force
             time.sleep(1.2)
             procs = []
             for p in psutil.process_iter(["name", "pid"]):
-                try: procs.append((p.info["name"], p.info["pid"], p.cpu_percent(interval=0.1)))
-                except: pass
+                try:
+                    procs.append((p.info["name"], p.info["pid"], p.cpu_percent(interval=0.1)))
+                except:
+                    pass
             top = sorted(procs, key=lambda x: x[2], reverse=True)[:5]
             self.log("Top 5 por CPU:")
             for nome, pid, cpu in top:
-                self.log(f"  {nome:<30} PID:{pid:<6} CPU:{cpu:.1f}%",
-                         "WARN" if cpu > 50 else "INFO")
+                self.log(
+                    f"  {nome:<30} PID:{pid:<6} CPU:{cpu:.1f}%",
+                    "WARN" if cpu > 50 else "INFO"
+                )
 
         self._run(run, "Processos CPU")
 
@@ -1005,12 +1040,15 @@ Remove-Item "C:\Windows\Temp\*"  -Recurse -Force
                 try:
                     mb = p.info["memory_info"].rss / 1024 / 1024
                     procs.append((p.info["name"], p.info["pid"], mb))
-                except: pass
+                except:
+                    pass
             top = sorted(procs, key=lambda x: x[2], reverse=True)[:5]
             self.log("Top 5 por RAM:")
             for nome, pid, mb in top:
-                self.log(f"  {nome:<30} PID:{pid:<6} RAM:{mb:.0f} MB",
-                         "WARN" if mb > 500 else "INFO")
+                self.log(
+                    f"  {nome:<30} PID:{pid:<6} RAM:{mb:.0f} MB",
+                    "WARN" if mb > 500 else "INFO"
+                )
 
         self._run(run, "Processos RAM")
 
@@ -1032,38 +1070,46 @@ Select-Object TimeCreated, Id, Message | Format-Table -AutoSize
     def _diag_saude(self):
         def run():
             self.log("Iniciando diagnóstico completo...")
-            score = 100
+            score   = 100
             alertas = []
 
-            # Internet
-            p1 = subprocess.run("ping -n 1 8.8.8.8", shell=True,
-                                 capture_output=True, creationflags=CREATE_NO_WINDOW)
+            p1 = subprocess.run(
+                "ping -n 1 8.8.8.8", shell=True,
+                capture_output=True, creationflags=CREATE_NO_WINDOW
+            )
             if p1.returncode != 0:
-                score -= 30; alertas.append("Sem acesso à internet")
+                score -= 30
+                alertas.append("Sem acesso à internet")
 
-            # DNS
-            p2 = subprocess.run("nslookup google.com", shell=True,
-                                 capture_output=True, text=True, creationflags=CREATE_NO_WINDOW)
+            p2 = subprocess.run(
+                "nslookup google.com", shell=True,
+                capture_output=True, text=True,
+                creationflags=CREATE_NO_WINDOW
+            )
             if "Address" not in p2.stdout:
-                score -= 20; alertas.append("Falha na resolução DNS")
+                score -= 20
+                alertas.append("Falha na resolução DNS")
 
-            # CPU
             cpu = psutil.cpu_percent(interval=1)
-            if cpu > 90: score -= 15; alertas.append(f"CPU crítico: {cpu:.0f}%")
+            if cpu > 90:
+                score -= 15
+                alertas.append(f"CPU crítico: {cpu:.0f}%")
 
-            # RAM
             ram = psutil.virtual_memory().percent
-            if ram > 90: score -= 15; alertas.append(f"RAM crítica: {ram:.0f}%")
+            if ram > 90:
+                score -= 15
+                alertas.append(f"RAM crítica: {ram:.0f}%")
 
-            # Disco
             disk = psutil.disk_usage("/").percent
-            if disk > 90: score -= 10; alertas.append(f"Disco quase cheio: {disk:.0f}%")
+            if disk > 90:
+                score -= 10
+                alertas.append(f"Disco quase cheio: {disk:.0f}%")
 
-            # Resultado
             nivel = "OK" if score >= 80 else ("WARN" if score >= 50 else "ERRO")
             self.log(f"RESULTADO: {score}/100", nivel)
             if alertas:
-                for a in alertas: self.log(f"  ⚠ {a}", "WARN")
+                for a in alertas:
+                    self.log(f"  ⚠ {a}", "WARN")
             else:
                 self.log("  Sistema operando dentro dos parâmetros normais.", "OK")
 
@@ -1099,10 +1145,10 @@ Select-Object InstanceName, PredictFailure, Reason | Format-List
 
     def _diag_boot_time(self):
         def run():
-            boot = datetime.fromtimestamp(psutil.boot_time())
+            boot   = datetime.fromtimestamp(psutil.boot_time())
             uptime = datetime.now() - boot
-            h, r = divmod(int(uptime.total_seconds()), 3600)
-            m, s = divmod(r, 60)
+            h, r   = divmod(int(uptime.total_seconds()), 3600)
+            m, s   = divmod(r, 60)
             self.log(f"Boot em : {boot.strftime('%d/%m/%Y %H:%M:%S')}")
             self.log(f"Uptime  : {h}h {m}m {s}s")
 
@@ -1116,13 +1162,16 @@ Select-Object InstanceName, PredictFailure, Reason | Format-List
             nome = f"Relatorio_TI_{datetime.now().strftime('%d%m%Y_%H%M%S')}.txt"
             self.log(f"Gerando relatório: {nome}...")
             with open(nome, "w", encoding="utf-8") as f:
-                f.write(f"RELATÓRIO DE SUPORTE TI\n")
+                f.write("RELATÓRIO DE SUPORTE TI\n")
                 f.write(f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
                 f.write(f"Host: {hostname()}\n")
                 f.write("=" * 60 + "\n\n")
-
-                res = subprocess.run("systeminfo", shell=True, capture_output=True,
-                                     text=True, encoding="utf-8", errors="ignore", creationflags=CREATE_NO_WINDOW)
+                res = subprocess.run(
+                    "systeminfo", shell=True,
+                    capture_output=True, text=True,
+                    encoding="utf-8", errors="ignore",
+                    creationflags=CREATE_NO_WINDOW
+                )
                 f.write(res.stdout)
             self.log(f"Relatório salvo: {nome}", "OK")
 
