@@ -17,24 +17,82 @@ ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 CREATE_NO_WINDOW = 0x08000000
 
-# Paleta de cores customizada
-CORES = {
-    "bg_primary":     "#0f1117",
-    "bg_secondary":   "#161b26",
-    "bg_tertiary":    "#1c2333",
-    "sidebar_bg":     "#0d1220",
-    "accent":         "#2563eb",
-    "accent_hover":   "#1d4ed8",
-    "accent_soft":    "#1e3a5f",
-    "success":        "#22c55e",
-    "warning":        "#f59e0b",
-    "danger":         "#ef4444",
-    "text_primary":   "#e2e8f0",
-    "text_secondary": "#94a3b8",
-    "text_muted":     "#4b5563",
-    "border":         "#1e293b",
-    "separator":      "#1e293b",
+TEMAS_CORES = {
+    "Dark": {
+        "bg_primary":     "#0f1117",
+        "bg_secondary":   "#161b26",
+        "bg_tertiary":    "#1c2333",
+        "sidebar_bg":     "#0d1220",
+        "accent":         "#2563eb",
+        "accent_hover":   "#1d4ed8",
+        "accent_soft":    "#1e3a5f",
+        "success":        "#22c55e",
+        "warning":        "#f59e0b",
+        "danger":         "#ef4444",
+        "text_primary":   "#e2e8f0",
+        "text_secondary": "#94a3b8",
+        "text_muted":     "#4b5563",
+        "border":         "#1e293b",
+        "separator":      "#1e293b",
+        "hover_menu_bg":  "#1a2235",
+    },
+    "Light": {
+        "bg_primary":     "#f1f5f9",
+        "bg_secondary":   "#ffffff",
+        "bg_tertiary":    "#e2e8f0",
+        "sidebar_bg":     "#dde3ed",
+        "accent":         "#2563eb",
+        "accent_hover":   "#1d4ed8",
+        "accent_soft":    "#bfdbfe",
+        "success":        "#16a34a",
+        "warning":        "#d97706",
+        "danger":         "#dc2626",
+        "text_primary":   "#0f172a",
+        "text_secondary": "#334155",
+        "text_muted":     "#94a3b8",
+        "border":         "#cbd5e1",
+        "separator":      "#cbd5e1",
+        "hover_menu_bg":  "#f8fafc",
+    },
+    "Azul": {
+        "bg_primary":     "#0a0f1e",
+        "bg_secondary":   "#0d1530",
+        "bg_tertiary":    "#101c3a",
+        "sidebar_bg":     "#080d1a",
+        "accent":         "#3b82f6",
+        "accent_hover":   "#2563eb",
+        "accent_soft":    "#1e3a8a",
+        "success":        "#22c55e",
+        "warning":        "#f59e0b",
+        "danger":         "#ef4444",
+        "text_primary":   "#e0f2fe",
+        "text_secondary": "#93c5fd",
+        "text_muted":     "#3b5070",
+        "border":         "#1e3a8a",
+        "separator":      "#1e3a8a",
+        "hover_menu_bg":  "#0f1f45",
+    },
+    "Verde": {
+        "bg_primary":     "#071008",
+        "bg_secondary":   "#0d1a0f",
+        "bg_tertiary":    "#112214",
+        "sidebar_bg":     "#060e08",
+        "accent":         "#22c55e",
+        "accent_hover":   "#16a34a",
+        "accent_soft":    "#14532d",
+        "success":        "#4ade80",
+        "warning":        "#f59e0b",
+        "danger":         "#ef4444",
+        "text_primary":   "#dcfce7",
+        "text_secondary": "#86efac",
+        "text_muted":     "#365c3e",
+        "border":         "#14532d",
+        "separator":      "#14532d",
+        "hover_menu_bg":  "#0a1f0c",
+    },
 }
+
+CORES = TEMAS_CORES["Dark"]
 
 
 # ─────────────────────────────────────────────
@@ -54,95 +112,210 @@ def hostname():
 
 # ─────────────────────────────────────────────
 #  WIDGET: BARRA LATERAL (SIDEBAR)
+#  Sem border_width → sem traço preto nas bordas
 # ─────────────────────────────────────────────
 class SidebarButton(ctk.CTkFrame):
-    """Botão estilo sidebar com ícone + texto + destaque ativo."""
+    """Botão sidebar com ícone + texto. Ativado por clique."""
 
-    def __init__(self, parent, icon, label, command, fontes, **kwargs):
-        super().__init__(parent, fg_color="transparent", corner_radius=8, **kwargs)
+    def __init__(self, parent, icon, label, fontes, **kwargs):
+        super().__init__(
+            parent,
+            fg_color="transparent",
+            corner_radius=6,
+            border_width=0,   # ← sem borda preta
+            **kwargs
+        )
         self._active = False
-        self._command = command
         self.FONTES = fontes
-        self._default_bg = "transparent"
-        self._active_bg = CORES["accent_soft"]
 
         self.configure(cursor="hand2")
 
         self._icon_lbl = ctk.CTkLabel(
-            self, text=icon, font=ctk.CTkFont(size=16),
-            text_color=CORES["text_secondary"], width=30, anchor="center"
+            self, text=icon, font=ctk.CTkFont(size=13),
+            text_color=CORES["text_secondary"], width=22, anchor="center"
         )
-        self._icon_lbl.grid(row=0, column=0, padx=(10, 4), pady=8)
+        self._icon_lbl.grid(row=0, column=0, padx=(6, 2), pady=6)
 
         self._text_lbl = ctk.CTkLabel(
-            self, text=label, font=self.FONTES["corpo"],
+            self, text=label, font=fontes["pequena"],
             text_color=CORES["text_secondary"], anchor="w"
         )
-        self._text_lbl.grid(row=0, column=1, padx=(0, 10), pady=8, sticky="w")
+        self._text_lbl.grid(row=0, column=1, padx=(0, 6), pady=6, sticky="w")
+
+        # Indicador de seta (►) à direita
+        self._arrow_lbl = ctk.CTkLabel(
+            self, text="›", font=ctk.CTkFont(size=14),
+            text_color=CORES["text_muted"], width=14, anchor="center"
+        )
+        self._arrow_lbl.grid(row=0, column=2, padx=(0, 6), pady=6)
 
         self.grid_columnconfigure(1, weight=1)
 
-        for widget in (self, self._icon_lbl, self._text_lbl):
-            widget.bind("<Button-1>", self._on_click)
-            widget.bind("<Enter>", self._on_enter)
-            widget.bind("<Leave>", self._on_leave)
-
-    def _on_click(self, _=None):
-        if self._command:
-            self._command(self)
-
-    def _on_enter(self, _=None):
+    def on_hover_enter(self, _=None):
         if not self._active:
             self.configure(fg_color=CORES["bg_tertiary"])
+            self._arrow_lbl.configure(text_color=CORES["text_secondary"])
 
-    def _on_leave(self, _=None):
+    def on_hover_leave(self, _=None):
         if not self._active:
-            self.configure(fg_color=self._default_bg)
+            self.configure(fg_color="transparent")
+            self._arrow_lbl.configure(text_color=CORES["text_muted"])
 
     def set_active(self, state: bool):
         self._active = state
-        color = CORES["accent_soft"] if state else self._default_bg
+        color      = CORES["accent_soft"] if state else "transparent"
         text_color = "#93c5fd" if state else CORES["text_secondary"]
+        arrow_col  = "#93c5fd" if state else CORES["text_muted"]
         self.configure(fg_color=color)
         self._icon_lbl.configure(text_color=text_color)
         self._text_lbl.configure(
             text_color=text_color,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold" if state else "normal")
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold" if state else "normal")
         )
+        self._arrow_lbl.configure(
+            text=("▾" if state else "›"),
+            text_color=arrow_col
+        )
+
+    def refresh_colors(self):
+        if self._active:
+            self.set_active(True)
+        else:
+            self.configure(fg_color="transparent")
+            self._icon_lbl.configure(text_color=CORES["text_secondary"])
+            self._text_lbl.configure(
+                text_color=CORES["text_secondary"],
+                font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal")
+            )
+            self._arrow_lbl.configure(text="›", text_color=CORES["text_muted"])
+
+
+# ─────────────────────────────────────────────
+#  WIDGET: MENU DROPDOWN (CLICK)
+#  Renderizado como CTkFrame com place() sobre a janela raiz.
+#  Sem Toplevel → sem flash preto, sem borda preta.
+# ─────────────────────────────────────────────
+class ClickMenu:
+    """
+    Painel dropdown renderizado diretamente sobre a janela raiz.
+    Abre/fecha com clique no botão da sidebar.
+    """
+
+    MENU_WIDTH = 240
+
+    def __init__(self, root, titulo, itens, fontes, on_action):
+        self._root      = root
+        self._on_action = on_action
+
+        self._frame = ctk.CTkFrame(
+            root,
+            width=self.MENU_WIDTH,
+            fg_color=CORES["hover_menu_bg"],
+            corner_radius=10,
+            border_width=1,
+            border_color=CORES["accent_soft"],
+        )
+
+        # Cabeçalho do menu
+        header = ctk.CTkFrame(self._frame, fg_color="transparent", corner_radius=0)
+        header.pack(fill="x", padx=10, pady=(10, 4))
+
+        ctk.CTkLabel(
+            header, text=titulo,
+            font=fontes["subtitulo"],
+            text_color=CORES["accent"],
+            anchor="w"
+        ).pack(side="left")
+
+        # Separador
+        ctk.CTkFrame(
+            self._frame, height=1,
+            fg_color=CORES["accent_soft"],
+            corner_radius=0
+        ).pack(fill="x", padx=0)
+
+        # Itens — sem border_width para não criar linha preta
+        for label, cmd in itens:
+            btn = ctk.CTkButton(
+                self._frame,
+                text=f"  {label}",
+                command=lambda c=cmd: self._fire(c),
+                height=32,
+                anchor="w",
+                fg_color="transparent",
+                hover_color=CORES["accent_soft"],
+                text_color=CORES["text_primary"],
+                font=fontes["pequena"],
+                corner_radius=6,
+                border_width=0,
+            )
+            btn.pack(fill="x", padx=6, pady=1)
+
+        # Espaço inferior
+        ctk.CTkFrame(self._frame, height=6, fg_color="transparent").pack()
+
+    def _fire(self, cmd):
+        self._on_action(cmd)
+
+    def show_at(self, x: int, y: int):
+        self._frame.place(x=x, y=y)
+        self._frame.lift()
+        self._frame.update_idletasks()
+        # Ajuste se ultrapassar a altura da janela
+        h  = self._frame.winfo_reqheight()
+        wh = self._root.winfo_height()
+        if y + h > wh - 10:
+            self._frame.place(x=x, y=max(0, wh - h - 10))
+
+    def winfo_rootx(self):  return self._frame.winfo_rootx()
+    def winfo_rooty(self):  return self._frame.winfo_rooty()
+    def winfo_width(self):  return self._frame.winfo_width()
+    def winfo_height(self): return self._frame.winfo_height()
+
+    def destroy(self):
+        try:
+            self._frame.place_forget()
+            self._frame.destroy()
+        except Exception:
+            pass
 
 
 # ─────────────────────────────────────────────
 #  WIDGET: CARD DE ESTATÍSTICA
 # ─────────────────────────────────────────────
 class StatCard(ctk.CTkFrame):
-    # CORREÇÃO: parâmetros reordenados — (parent, icon, label, fontes)
     def __init__(self, parent, icon, label, fontes, **kwargs):
         super().__init__(
             parent,
             fg_color=CORES["bg_tertiary"],
-            corner_radius=12,
+            corner_radius=10,
             border_width=1,
             border_color=CORES["border"],
             **kwargs
         )
-
         self.FONTES = fontes
 
-        ctk.CTkLabel(self, text=icon, font=ctk.CTkFont(size=18)).pack(pady=(12, 0))
+        ctk.CTkLabel(self, text=icon, font=ctk.CTkFont(size=17)).pack(pady=(10, 0))
         self._val = ctk.CTkLabel(
             self, text="—",
             font=self.FONTES["stat"],
             text_color=CORES["text_primary"]
         )
         self._val.pack()
-        ctk.CTkLabel(
+        self._lbl = ctk.CTkLabel(
             self, text=label,
             font=self.FONTES["stat_label"],
             text_color=CORES["text_muted"]
-        ).pack(pady=(0, 12))
+        )
+        self._lbl.pack(pady=(0, 10))
 
-    def update(self, value: str, color: str = CORES["text_primary"]):
-        self._val.configure(text=value, text_color=color)
+    def update(self, value: str, color: str = None):
+        self._val.configure(text=value, text_color=color or CORES["text_primary"])
+
+    def refresh_colors(self):
+        self.configure(fg_color=CORES["bg_tertiary"], border_color=CORES["border"])
+        self._val.configure(text_color=CORES["text_primary"])
+        self._lbl.configure(text_color=CORES["text_muted"])
 
 
 # ─────────────────────────────────────────────
@@ -156,8 +329,6 @@ class StatusBadge(ctk.CTkLabel):
         "info":    ("#dbeafe", "#1e3a5f"),
     }
 
-    # CORREÇÃO: removida referência a self.FONTES que não existia;
-    # fonte definida localmente dentro do método set()
     def __init__(self, parent, estado="info", **kwargs):
         super().__init__(parent, **kwargs)
         self._badge_font = ctk.CTkFont(family="Segoe UI", size=10, weight="bold")
@@ -179,12 +350,14 @@ class StatusBadge(ctk.CTkLabel):
 # ─────────────────────────────────────────────
 class SuporteTecnicoApp(ctk.CTk):
 
-    SIDEBAR_W = 215
+    SIDEBAR_W = 185
     HEADER_H  = 56
     STATS_H   = 110
 
     def __init__(self):
         super().__init__()
+
+        self.withdraw()
 
         self.FONTES = {
             "titulo":     ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
@@ -199,15 +372,20 @@ class SuporteTecnicoApp(ctk.CTk):
 
         self.title("Suporte Técnico TI")
         self.configure(fg_color=CORES["bg_primary"])
-        self._centralizar(1280, 740)
         self.minsize(1000, 600)
 
         # Estado
-        self._executando      = False
-        self._auto_scroll     = True
-        self._sidebar_buttons = {}
-        self._grupo_ativo     = None
+        self._executando   = False
+        self._tarefa_atual = None
+        self._auto_scroll  = True
+        self._sidebar_buttons: dict = {}
+        self._grupo_ativo  = None
         self._log_queue: queue.Queue = queue.Queue()
+        self._tema_atual   = "Dark"
+
+        # Menu de click
+        self._click_menu: ClickMenu | None = None
+        self._menu_btn_ref: SidebarButton | None = None
 
         # Construção da interface
         self._build_layout()
@@ -222,22 +400,43 @@ class SuporteTecnicoApp(ctk.CTk):
         self._atualizar_stats()
         self._log_boas_vindas()
 
+        self.bind("<Button-1>", self._on_root_click, add="+")
+        self.protocol("WM_DELETE_WINDOW", self._on_fechar_app)
+        self.after(50, self._exibir_maximizado)
+
+    def _exibir_maximizado(self):
+        self.state("zoomed")
+        self.deiconify()
+
+    # ─────────────────────────────────────────────
+    #  Fechar app
+    # ─────────────────────────────────────────────
+    def _on_fechar_app(self):
+        if self._executando and self._tarefa_atual:
+            self.log(
+                f"⚠ Usuário fechou o aplicativo durante a execução de '{self._tarefa_atual}'. "
+                "Operação interrompida — sistema liberado.",
+                "WARN"
+            )
+            self._executando = False
+            self._tarefa_atual = None
+        self.destroy()
+
     # ── Layout principal ──────────────────────
     def _build_layout(self):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        # Sidebar (coluna 0)
         self._sidebar = ctk.CTkFrame(
             self, width=self.SIDEBAR_W,
             fg_color=CORES["sidebar_bg"],
-            corner_radius=0
+            corner_radius=0,
+            border_width=0,   # ← sem traço/borda
         )
         self._sidebar.grid(row=0, column=0, sticky="nsew")
         self._sidebar.grid_propagate(False)
         self._sidebar.grid_rowconfigure(99, weight=1)
 
-        # Área principal (coluna 1)
         self._main = ctk.CTkFrame(self, fg_color=CORES["bg_primary"], corner_radius=0)
         self._main.grid(row=0, column=1, sticky="nsew")
         self._main.grid_rowconfigure(2, weight=1)
@@ -245,105 +444,219 @@ class SuporteTecnicoApp(ctk.CTk):
 
     # ── Sidebar ───────────────────────────────
     def _build_sidebar(self):
-        # Logo / marca
-        logo_frame = ctk.CTkFrame(self._sidebar, fg_color="transparent", height=self.HEADER_H)
+        logo_frame = ctk.CTkFrame(
+            self._sidebar, fg_color="transparent",
+            height=self.HEADER_H, corner_radius=0, border_width=0
+        )
         logo_frame.pack(fill="x")
         logo_frame.pack_propagate(False)
 
         ctk.CTkLabel(
             logo_frame,
             text="⚙  SUPORTE TI",
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             text_color=CORES["accent"],
             anchor="w"
-        ).place(relx=0.1, rely=0.5, anchor="w")
+        ).place(relx=0.08, rely=0.5, anchor="w")
 
-        ctk.CTkFrame(self._sidebar, height=1, fg_color=CORES["separator"]).pack(fill="x")
+        self._sep_top = ctk.CTkFrame(
+            self._sidebar, height=1,
+            fg_color=CORES["separator"], corner_radius=0, border_width=0
+        )
+        self._sep_top.pack(fill="x")
 
-        ctk.CTkLabel(
+        self._hostname_lbl = ctk.CTkLabel(
             self._sidebar,
             text=f"  🖥  {hostname()}",
             font=self.FONTES["pequena"],
             text_color=CORES["text_muted"],
             anchor="w"
-        ).pack(fill="x", padx=8, pady=(10, 4))
+        )
+        self._hostname_lbl.pack(fill="x", padx=6, pady=(8, 2))
 
         self._admin_badge = StatusBadge(
             self._sidebar,
             estado="online" if is_admin() else "warn",
-            text="✔ Administrador" if is_admin() else "⚠ Sem Privilégios"
+            text="✔ Admin" if is_admin() else "⚠ Sem Priv."
         )
-        self._admin_badge.pack(padx=12, pady=(0, 12), anchor="w")
+        self._admin_badge.pack(padx=10, pady=(0, 8), anchor="w")
 
-        ctk.CTkFrame(self._sidebar, height=1, fg_color=CORES["separator"]).pack(fill="x", pady=4)
+        self._sep_mid = ctk.CTkFrame(
+            self._sidebar, height=1,
+            fg_color=CORES["separator"], corner_radius=0, border_width=0
+        )
+        self._sep_mid.pack(fill="x", pady=2)
 
-        # Grupos do menu
-        grupos = {
-            "REDE":        ("🌐", self._grupo_rede),
-            "SISTEMA":     ("💻", self._grupo_sistema),
-            "IMPRESSÃO":   ("🖨", self._grupo_impressao),
-            "USUÁRIOS":    ("👤", self._grupo_usuarios),
-            "SERVIÇOS":    ("⚙",  self._grupo_servicos),
-            "DIAGNÓSTICO": ("🔬", self._grupo_diagnostico),
-            "FERRAMENTAS": ("🛠", self._grupo_ferramentas),
-        }
+        # ── Grupos com menu por clique ──
+        grupos = [
+            ("REDE",        "🌐", self._itens_rede),
+            ("SISTEMA",     "💻", self._itens_sistema),
+            ("IMPRESSÃO",   "🖨", self._itens_impressao),
+            ("USUÁRIOS",    "👤", self._itens_usuarios),
+            ("SERVIÇOS",    "⚙",  self._itens_servicos),
+            ("DIAGNÓSTICO", "🔬", self._itens_diagnostico),
+            ("FERRAMENTAS", "🛠", self._itens_ferramentas),
+            ("ATIVAÇÃO",    "🔑", self._itens_ativacao),
+        ]
 
-        for nome, (icone, fn) in grupos.items():
+        for nome, icone, itens_fn in grupos:
             btn = SidebarButton(
                 self._sidebar, icon=icone, label=nome,
-                command=lambda b, f=fn, n=nome: self._ativar_grupo(b, f, n),
                 fontes=self.FONTES,
             )
-            btn.pack(fill="x", padx=8, pady=2)
+            btn.pack(fill="x", padx=6, pady=1)
             self._sidebar_buttons[nome] = btn
 
-        # Espaçador + tema
-        ctk.CTkFrame(self._sidebar, fg_color="transparent").pack(expand=True, fill="both")
-        ctk.CTkFrame(self._sidebar, height=1, fg_color=CORES["separator"]).pack(fill="x")
+            titulo = f"{icone}  {nome}"
+            self._setup_click_btn(btn, nome, titulo, itens_fn)
 
-        tema_frame = ctk.CTkFrame(self._sidebar, fg_color="transparent")
-        tema_frame.pack(fill="x", padx=12, pady=10)
+        # Espaçador + tema
+        ctk.CTkFrame(
+            self._sidebar, fg_color="transparent", corner_radius=0, border_width=0
+        ).pack(expand=True, fill="both")
+
+        self._sep_bottom = ctk.CTkFrame(
+            self._sidebar, height=1,
+            fg_color=CORES["separator"], corner_radius=0, border_width=0
+        )
+        self._sep_bottom.pack(fill="x")
+
+        tema_frame = ctk.CTkFrame(
+            self._sidebar, fg_color="transparent", corner_radius=0, border_width=0
+        )
+        tema_frame.pack(fill="x", padx=8, pady=8)
         ctk.CTkLabel(
-            tema_frame, text="Tema",
+            tema_frame, text="🎨",
             font=self.FONTES["pequena"],
             text_color=CORES["text_muted"]
         ).pack(side="left")
-        ctk.CTkOptionMenu(
+        self._tema_menu = ctk.CTkOptionMenu(
             tema_frame,
-            values=["Dark", "Light", "System"],
+            values=["Dark", "Light", "Azul", "Verde"],
             command=self._mudar_tema,
-            width=100, height=28,
+            width=108, height=26,
             font=self.FONTES["pequena"],
             fg_color=CORES["bg_tertiary"],
             button_color=CORES["accent"],
             button_hover_color=CORES["accent_hover"],
-        ).pack(side="right")
+        )
+        self._tema_menu.set("Dark")
+        self._tema_menu.pack(side="right")
 
-    def _ativar_grupo(self, btn: SidebarButton, fn, nome: str):
-        if self._grupo_ativo:
-            self._sidebar_buttons[self._grupo_ativo].set_active(False)
+    def _setup_click_btn(self, btn, nome, titulo, itens_fn):
+        """Configura hover visual + abertura/fechamento por clique."""
+
+        def on_click(e=None):
+            # Toggle: se já está aberto para este botão, fecha
+            if self._grupo_ativo == nome and self._click_menu:
+                self._close_menu_now()
+                return
+            self._open_menu(btn, nome, titulo, itens_fn())
+
+        def on_enter(e=None):
+            btn.on_hover_enter()
+
+        def on_leave(e=None):
+            btn.on_hover_leave()
+
+        # Bindings no frame e nos filhos internos
+        for widget in [btn, btn._icon_lbl, btn._text_lbl, btn._arrow_lbl]:
+            widget.bind("<Button-1>", on_click, add="+")
+            widget.bind("<Enter>",    on_enter, add="+")
+            widget.bind("<Leave>",    on_leave, add="+")
+
+    # ── Menu de clique: open / close ──────────
+    def _open_menu(self, btn, nome, titulo, itens):
+        self._close_menu_now()
+
+        # Coordenadas relativas à janela raiz
+        screen_x = btn.winfo_rootx() + btn.winfo_width() + 4
+        screen_y = btn.winfo_rooty()
+        root_x   = screen_x - self.winfo_rootx()
+        root_y   = screen_y - self.winfo_rooty()
+
+        self._click_menu = ClickMenu(
+            self, titulo, itens, self.FONTES,
+            on_action=self._on_menu_action,
+        )
+        self._click_menu.show_at(root_x, root_y)
+        self._menu_btn_ref = btn
+
+        # Desativa o botão anterior
+        if self._grupo_ativo and self._grupo_ativo != nome:
+            try:
+                self._sidebar_buttons[self._grupo_ativo].set_active(False)
+            except Exception:
+                pass
+
         self._grupo_ativo = nome
         btn.set_active(True)
-        fn()
+
+    def _on_menu_action(self, cmd):
+        self._close_menu_now()
+        cmd()
+
+    def _close_menu_now(self):
+        if self._click_menu:
+            try:
+                self._click_menu.destroy()
+            except Exception:
+                pass
+            self._click_menu    = None
+            self._menu_btn_ref  = None
+
+        if self._grupo_ativo:
+            try:
+                self._sidebar_buttons[self._grupo_ativo].set_active(False)
+            except Exception:
+                pass
+            self._grupo_ativo = None
+
+    def _on_root_click(self, event):
+        """Fecha o menu ao clicar fora dele."""
+        if not self._click_menu:
+            return
+        try:
+            mx = self._click_menu.winfo_rootx()
+            my = self._click_menu.winfo_rooty()
+            mw = self._click_menu.winfo_width()
+            mh = self._click_menu.winfo_height()
+            px, py = event.x_root, event.y_root
+            # Não fecha se clicou dentro do menu
+            if mx <= px <= mx + mw and my <= py <= my + mh:
+                return
+            # Não fecha se clicou num botão da sidebar (ele trata o toggle)
+            widget = event.widget
+            while widget:
+                if isinstance(widget, SidebarButton):
+                    return
+                try:
+                    widget = widget.master
+                except Exception:
+                    break
+            self._close_menu_now()
+        except Exception:
+            pass
 
     # ── Header ────────────────────────────────
     def _build_header(self):
-        header = ctk.CTkFrame(
+        self._header_frame = ctk.CTkFrame(
             self._main, height=self.HEADER_H,
             fg_color=CORES["bg_secondary"],
             corner_radius=0
         )
-        header.grid(row=0, column=0, sticky="ew")
-        header.grid_propagate(False)
+        self._header_frame.grid(row=0, column=0, sticky="ew")
+        self._header_frame.grid_propagate(False)
 
-        ctk.CTkLabel(
-            header, text="Painel de Suporte",
+        self._header_title = ctk.CTkLabel(
+            self._header_frame, text="Painel de Suporte",
             font=self.FONTES["titulo"],
             text_color=CORES["text_primary"]
-        ).pack(side="left", padx=20)
+        )
+        self._header_title.pack(side="left", padx=20)
 
         self._hora_lbl = ctk.CTkLabel(
-            header, text="",
+            self._header_frame, text="",
             font=self.FONTES["pequena"],
             text_color=CORES["text_muted"]
         )
@@ -358,51 +671,53 @@ class SuporteTecnicoApp(ctk.CTk):
 
     # ── Stats bar ─────────────────────────────
     def _build_stats_bar(self):
-        bar = ctk.CTkFrame(
+        self._stats_bar = ctk.CTkFrame(
             self._main, height=self.STATS_H,
             fg_color=CORES["bg_secondary"],
             corner_radius=0
         )
-        bar.grid(row=1, column=0, sticky="ew", padx=0)
-        bar.grid_propagate(False)
+        self._stats_bar.grid(row=1, column=0, sticky="ew")
+        self._stats_bar.grid_propagate(False)
+        self._stats_bar.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="stat_col")
+        self._stats_bar.grid_rowconfigure(0, weight=1)
 
-        inner = ctk.CTkFrame(bar, fg_color="transparent")
-        inner.place(relx=0.5, rely=0.5, anchor="center")
+        self._cpu_card  = StatCard(self._stats_bar, "🔄", "CPU",   self.FONTES)
+        self._ram_card  = StatCard(self._stats_bar, "🧠", "RAM",   self.FONTES)
+        self._disk_card = StatCard(self._stats_bar, "💾", "DISCO", self.FONTES)
+        self._net_card  = StatCard(self._stats_bar, "🌐", "REDE",  self.FONTES)
 
-        # CORREÇÃO: ordem correta (parent, icon, label, fontes) para todos os cards
-        self._cpu_card  = StatCard(inner, "🔄", "CPU",   self.FONTES)
-        self._ram_card  = StatCard(inner, "🧠", "RAM",   self.FONTES)
-        self._disk_card = StatCard(inner, "💾", "DISCO", self.FONTES)
-        self._net_card  = StatCard(inner, "🌐", "REDE",  self.FONTES)
-
-        for i, card in enumerate((self._cpu_card, self._ram_card, self._disk_card, self._net_card)):
-            card.grid(row=0, column=i, padx=8, ipadx=12)
+        cards = (self._cpu_card, self._ram_card, self._disk_card, self._net_card)
+        for i, card in enumerate(cards):
+            card.grid(row=0, column=i, padx=(8 if i == 0 else 4, 4 if i < 3 else 8),
+                      pady=8, sticky="nsew")
 
     # ── Área de log ───────────────────────────
     def _build_log_area(self):
-        log_outer = ctk.CTkFrame(
+        self._log_outer = ctk.CTkFrame(
             self._main,
             fg_color=CORES["bg_secondary"],
             corner_radius=12
         )
-        log_outer.grid(row=2, column=0, sticky="nsew", padx=16, pady=(12, 4))
-        log_outer.grid_rowconfigure(1, weight=1)
-        log_outer.grid_columnconfigure(0, weight=1)
+        self._log_outer.grid(row=2, column=0, sticky="nsew", padx=16, pady=(12, 4))
+        self._log_outer.grid_rowconfigure(1, weight=1)
+        self._log_outer.grid_columnconfigure(0, weight=1)
 
-        toolbar = ctk.CTkFrame(log_outer, fg_color="transparent")
+        toolbar = ctk.CTkFrame(self._log_outer, fg_color="transparent")
         toolbar.grid(row=0, column=0, sticky="ew", padx=10, pady=(8, 0))
 
-        ctk.CTkLabel(
+        self._log_title = ctk.CTkLabel(
             toolbar, text="📋  Log de Execução",
             font=self.FONTES["subtitulo"],
             text_color=CORES["text_secondary"]
-        ).pack(side="left")
+        )
+        self._log_title.pack(side="left")
 
+        self._toolbar_btns = []
         for txt, cmd in (
             ("⬇ Exportar", self._exportar_log),
             ("🗑 Limpar",  self._limpar_log),
         ):
-            ctk.CTkButton(
+            b = ctk.CTkButton(
                 toolbar, text=txt, command=cmd,
                 width=90, height=26,
                 font=self.FONTES["pequena"],
@@ -411,10 +726,12 @@ class SuporteTecnicoApp(ctk.CTk):
                 text_color=CORES["text_secondary"],
                 border_width=1, border_color=CORES["border"],
                 corner_radius=6
-            ).pack(side="right", padx=4)
+            )
+            b.pack(side="right", padx=4)
+            self._toolbar_btns.append(b)
 
         self._scroll_var = ctk.BooleanVar(value=True)
-        ctk.CTkSwitch(
+        self._auto_scroll_sw = ctk.CTkSwitch(
             toolbar, text="Auto-scroll",
             variable=self._scroll_var,
             font=self.FONTES["pequena"],
@@ -424,10 +741,11 @@ class SuporteTecnicoApp(ctk.CTk):
             onvalue=True, offvalue=False,
             width=44, height=20,
             command=lambda: setattr(self, "_auto_scroll", self._scroll_var.get())
-        ).pack(side="right", padx=8)
+        )
+        self._auto_scroll_sw.pack(side="right", padx=8)
 
         self._log_text = ctk.CTkTextbox(
-            log_outer,
+            self._log_outer,
             font=self.FONTES["console"],
             fg_color=CORES["bg_primary"],
             text_color=CORES["text_primary"],
@@ -436,7 +754,9 @@ class SuporteTecnicoApp(ctk.CTk):
             wrap="word",
         )
         self._log_text.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+        self._reconfigure_log_tags()
 
+    def _reconfigure_log_tags(self):
         self._log_text.tag_config("ts",   foreground=CORES["text_muted"])
         self._log_text.tag_config("ok",   foreground=CORES["success"])
         self._log_text.tag_config("erro", foreground=CORES["danger"])
@@ -447,16 +767,16 @@ class SuporteTecnicoApp(ctk.CTk):
 
     # ── Status bar ────────────────────────────
     def _build_status_bar(self):
-        bar = ctk.CTkFrame(
+        self._status_bar = ctk.CTkFrame(
             self._main, height=30,
             fg_color=CORES["bg_secondary"],
             corner_radius=0
         )
-        bar.grid(row=3, column=0, sticky="ew")
-        bar.grid_propagate(False)
+        self._status_bar.grid(row=3, column=0, sticky="ew")
+        self._status_bar.grid_propagate(False)
 
         self._status_lbl = ctk.CTkLabel(
-            bar, text="  ✔  Pronto",
+            self._status_bar, text="  ✔  Pronto",
             font=self.FONTES["pequena"],
             text_color=CORES["success"],
             anchor="w"
@@ -464,13 +784,88 @@ class SuporteTecnicoApp(ctk.CTk):
         self._status_lbl.pack(side="left", padx=10)
 
         self._progress = ctk.CTkProgressBar(
-            bar, width=180, height=6,
+            self._status_bar, width=180, height=6,
             progress_color=CORES["accent"],
             fg_color=CORES["bg_tertiary"],
             corner_radius=3
         )
         self._progress.pack(side="right", padx=16, pady=8)
         self._progress.set(0)
+
+    # ─────────────────────────────────────────────
+    #  LISTAS DE ITENS POR GRUPO
+    # ─────────────────────────────────────────────
+    def _itens_rede(self):
+        return [
+            ("Status de Conexão",   self._rede_status),
+            ("Redes Wi-Fi Salvas",  self._rede_wifi_salvas),
+            ("IP / MAC / DNS",      lambda: self._cmd("ipconfig /all", "IP/MAC/DNS")),
+            ("Flush DNS",           lambda: self._cmd("ipconfig /flushdns", "Flush DNS")),
+            ("Renovar IP",          self._rede_renovar_ip),
+            ("Sincronizar NTP",     self._rede_ntp),
+            ("Traceroute 8.8.8.8",  lambda: self._cmd("tracert 8.8.8.8", "Traceroute")),
+            ("Diagnóstico de Rede", self._rede_diagnostico),
+        ]
+
+    def _itens_sistema(self):
+        return [
+            ("Limpar Temporários",   self._sis_limpar_temp),
+            ("Limpeza Avançada",     self._sis_limpeza_completa),
+            ("SFC Scan",             lambda: self._cmd("sfc /scannow", "SFC Scan")),
+            ("DISM RestoreHealth",   lambda: self._cmd("DISM /Online /Cleanup-Image /RestoreHealth", "DISM")),
+            ("Informações Hardware", lambda: self._cmd("systeminfo", "Hardware Info")),
+            ("Política de Grupo",    lambda: self._cmd("gpupdate /force", "GPUpdate")),
+        ]
+
+    def _itens_impressao(self):
+        return [
+            ("Reset Spooler",         self._imp_resetar_spooler),
+            ("Ver Fila de Impressão", lambda: self._cmd(
+                "explorer shell:::{2227A280-3AEA-1069-A2DE-08002B30309D}", "Fila")),
+            ("Gerenciar Impressoras", lambda: self._cmd("control printers", "Impressoras")),
+            ("Reinstalar Driver",     self._imp_reinstalar_driver),
+        ]
+
+    def _itens_usuarios(self):
+        return [
+            ("Desbloquear Conta",  self._usr_desbloquear),
+            ("Alterar Senha",      self._usr_senha),
+            ("Logoff Forçado",     self._usr_logoff),
+            ("Adicionar ao Admin", self._usr_add_admin),
+            ("Listar Usuários",    lambda: self._cmd("net user", "Listar Usuários")),
+        ]
+
+    def _itens_servicos(self):
+        return [
+            ("Top 5 Processos CPU",  self._svc_processos_pesados),
+            ("Top 5 Processos RAM",  self._svc_processos_ram),
+            ("Gerenciador de Serv.", lambda: self._cmd("services.msc", "Serviços")),
+            ("Event Viewer",         lambda: self._cmd("eventvwr.msc", "Event Viewer")),
+            ("Eventos Críticos",     self._svc_eventos_criticos),
+        ]
+
+    def _itens_diagnostico(self):
+        return [
+            ("Saúde do Sistema",   self._diag_saude),
+            ("Verificar Drivers",  self._diag_drivers),
+            ("Teste de Memória",   lambda: self._cmd("mdsched", "Memória")),
+            ("SMART de Disco",     self._diag_smart),
+            ("Tempo de Boot",      self._diag_boot_time),
+        ]
+
+    def _itens_ferramentas(self):
+        return [
+            ("Painel de Controle", lambda: self._cmd("control", "Painel")),
+            ("Gerenc. de Tarefas", lambda: self._cmd("taskmgr", "TaskMgr")),
+            ("Editor do Registro", lambda: self._cmd("regedit", "Regedit")),
+            ("Gerar Relatório",    self._fer_relatorio),
+            ("Abrir Log Externo",  self._fer_abrir_log),
+        ]
+
+    def _itens_ativacao(self):
+        return [
+            ("Ativar Windows / Office", self._ativar_windows_office),
+        ]
 
     # ─────────────────────────────────────────────
     #  LOG ENGINE
@@ -480,7 +875,7 @@ class SuporteTecnicoApp(ctk.CTk):
 
     def _processar_log_queue(self):
         try:
-            while True:
+            for _ in range(10):
                 msg, nivel = self._log_queue.get_nowait()
                 self._escrever_log(msg, nivel)
         except queue.Empty:
@@ -539,6 +934,7 @@ class SuporteTecnicoApp(ctk.CTk):
             f"Modo Admin: {'✔ Ativo' if is_admin() else '✖ Inativo — algumas funções podem falhar'}",
             "OK" if is_admin() else "WARN"
         )
+        self.log("Clique nos grupos na sidebar para ver as ações disponíveis.", "INFO")
         self.log("SEP", "SEP")
 
     # ─────────────────────────────────────────────
@@ -546,11 +942,15 @@ class SuporteTecnicoApp(ctk.CTk):
     # ─────────────────────────────────────────────
     def _run(self, func, nome_op: str = "Operação"):
         if self._executando:
-            self.log("Aguarde a operação atual finalizar.", "WARN")
+            self.log(
+                f"⛔ Aguarde a conclusão de '{self._tarefa_atual}' antes de iniciar outra função.",
+                "WARN"
+            )
             return
 
         def wrapper():
-            self._executando = True
+            self._executando   = True
+            self._tarefa_atual = nome_op
             self._set_status(f"⏳  {nome_op}...", CORES["warning"])
             self._progress.configure(mode="indeterminate")
             self._progress.start()
@@ -559,7 +959,8 @@ class SuporteTecnicoApp(ctk.CTk):
             except Exception as e:
                 self.log(f"Erro inesperado: {e}", "ERRO")
             finally:
-                self._executando = False
+                self._executando   = False
+                self._tarefa_atual = None
                 self._progress.stop()
                 self._progress.configure(mode="determinate")
                 self._progress.set(0)
@@ -567,8 +968,10 @@ class SuporteTecnicoApp(ctk.CTk):
 
         threading.Thread(target=wrapper, daemon=True).start()
 
-    def _set_status(self, texto: str, cor: str = CORES["text_primary"]):
-        self.after(0, lambda: self._status_lbl.configure(text=f"  {texto}", text_color=cor))
+    def _set_status(self, texto: str, cor: str = None):
+        self.after(0, lambda: self._status_lbl.configure(
+            text=f"  {texto}", text_color=cor or CORES["text_primary"]
+        ))
 
     def _cmd(self, cmd: str, nome: str = None):
         def run():
@@ -619,236 +1022,223 @@ class SuporteTecnicoApp(ctk.CTk):
         self._ram_card.update(f"{ram:.0f}%",  _cor(ram))
         self._disk_card.update(f"{disk:.0f}%", _cor(disk))
 
-        try:
-            net = psutil.net_io_counters()
-            if hasattr(self, "_net_prev"):
-                dt = 1
-                sent_kb = (net.bytes_sent - self._net_prev.bytes_sent) / 1024 / dt
-                recv_kb = (net.bytes_recv - self._net_prev.bytes_recv) / 1024 / dt
-                self._net_card.update(f"↑{sent_kb:.0f} ↓{recv_kb:.0f}", CORES["text_primary"])
-            else:
-                self._net_card.update("Medindo…", CORES["text_muted"])
-            self._net_prev = net
-        except:
-            self._net_card.update("N/D", CORES["text_muted"])
+        # Card REDE: exibe ONLINE/OFFLINE com base em ping assíncrono
+        # Atualiza a cada 10s para não sobrecarregar
+        self._net_tick = getattr(self, "_net_tick", 0) + 1
+        if self._net_tick >= 10 or not hasattr(self, "_net_status_cache"):
+            self._net_tick = 0
+            threading.Thread(target=self._atualizar_net_card, daemon=True).start()
 
         self.after(1000, self._atualizar_stats)
 
-    # ─────────────────────────────────────────────
-    #  PAINÉIS DE AÇÕES (inline popup)
-    # ─────────────────────────────────────────────
-    def _fechar_painel(self):
-        if hasattr(self, "_painel") and self._painel:
-            self._painel.destroy()
-            self._painel = None
+    def _atualizar_net_card(self):
+        """Verifica conectividade em background e atualiza o card REDE."""
+        try:
+            r = subprocess.run(
+                "ping -n 1 -w 1500 8.8.8.8", shell=True,
+                capture_output=True, creationflags=CREATE_NO_WINDOW
+            )
+            online = r.returncode == 0
+            if online:
+                # Extrai latência da linha de resumo
+                raw = r.stdout.decode("cp1252", errors="replace")
+                ms = "—"
+                for linha in raw.splitlines():
+                    m = re.search(r"[=<]\s*(\d+)\s*ms", linha)
+                    if m:
+                        ms = f"{m.group(1)}ms"
+                        break
+                texto = f"ONLINE  {ms}"
+                cor   = CORES["success"]
+            else:
+                texto = "OFFLINE"
+                cor   = CORES["danger"]
+            self._net_status_cache = (texto, cor)
+        except Exception:
+            self._net_status_cache = ("N/D", CORES["text_muted"])
 
-    def _abrir_painel(self, titulo: str, itens: list):
-        self._fechar_painel()
-
-        self._painel = ctk.CTkToplevel(self)
-        self._painel.title(titulo)
-        self._painel.configure(fg_color=CORES["bg_secondary"])
-        self._painel.resizable(False, False)
-        self._painel.attributes("-topmost", True)
-        self._painel.grab_set()
-
-        w, h = 280, 60 + 48 * len(itens)
-        px = self.winfo_x() + self.SIDEBAR_W + 20
-        py = self.winfo_y() + self.HEADER_H + self.STATS_H + 20
-        self._painel.geometry(f"{w}x{h}+{px}+{py}")
-
-        ctk.CTkLabel(
-            self._painel, text=titulo,
-            font=self.FONTES["subtitulo"],
-            text_color=CORES["text_secondary"]
-        ).pack(pady=(14, 6), padx=16, anchor="w")
-
-        ctk.CTkFrame(self._painel, height=1, fg_color=CORES["separator"]).pack(fill="x")
-
-        for label, cmd in itens:
-            def _make_cmd(c):
-                def _():
-                    self._fechar_painel()
-                    c()
-                return _
-
-            ctk.CTkButton(
-                self._painel, text=label,
-                command=_make_cmd(cmd),
-                height=36, anchor="w",
-                fg_color="transparent",
-                hover_color=CORES["bg_tertiary"],
-                text_color=CORES["text_primary"],
-                font=self.FONTES["corpo"],
-                corner_radius=6,
-            ).pack(fill="x", padx=8, pady=3)
-
-        self._painel.bind("<Escape>", lambda _: self._fechar_painel())
-        self._painel.protocol("WM_DELETE_WINDOW", self._fechar_painel)
-
-    # ─────────────────────────────────────────────
-    #  GRUPOS DE AÇÕES
-    # ─────────────────────────────────────────────
-    def _grupo_rede(self):
-        self.log("SEP", "SEP")
-        self.log("MÓDULO: REDE", "INFO")
-        self._abrir_painel("🌐  Rede", [
-            ("Status de Conexão",   self._rede_status),
-            ("Redes Wi-Fi Salvas",  self._rede_wifi_salvas),
-            ("IP / MAC / DNS",      lambda: self._cmd("ipconfig /all", "IP/MAC/DNS")),
-            ("Flush DNS",           lambda: self._cmd("ipconfig /flushdns", "Flush DNS")),
-            ("Renovar IP",          self._rede_renovar_ip),
-            ("Sincronizar NTP",     self._rede_ntp),
-            ("Traceroute 8.8.8.8",  lambda: self._cmd("tracert 8.8.8.8", "Traceroute")),
-            ("Diagnóstico de Rede", self._rede_diagnostico),
-        ])
-
-    def _grupo_sistema(self):
-        self.log("SEP", "SEP")
-        self.log("MÓDULO: SISTEMA", "INFO")
-        self._abrir_painel("💻  Sistema", [
-            ("Limpar Temporários",   self._sis_limpar_temp),
-            ("Limpeza Avançada",     self._sis_limpeza_completa),
-            ("SFC Scan",             lambda: self._cmd("sfc /scannow", "SFC Scan")),
-            ("DISM RestoreHealth",   lambda: self._cmd("DISM /Online /Cleanup-Image /RestoreHealth", "DISM")),
-            ("Informações Hardware", lambda: self._cmd("systeminfo", "Hardware Info")),
-            ("Política de Grupo",    lambda: self._cmd("gpupdate /force", "GPUpdate")),
-        ])
-
-    def _grupo_impressao(self):
-        self.log("SEP", "SEP")
-        self.log("MÓDULO: IMPRESSÃO", "INFO")
-        self._abrir_painel("🖨  Impressão", [
-            ("Reset Spooler",         self._imp_resetar_spooler),
-            ("Ver Fila de Impressão", lambda: self._cmd("explorer shell:::{2227A280-3AEA-1069-A2DE-08002B30309D}", "Fila")),
-            ("Gerenciar Impressoras", lambda: self._cmd("control printers", "Impressoras")),
-            ("Reinstalar Driver",     self._imp_reinstalar_driver),
-        ])
-
-    def _grupo_usuarios(self):
-        self.log("SEP", "SEP")
-        self.log("MÓDULO: USUÁRIOS", "INFO")
-        self._abrir_painel("👤  Usuários", [
-            ("Desbloquear Conta",  self._usr_desbloquear),
-            ("Alterar Senha",      self._usr_senha),
-            ("Logoff Forçado",     self._usr_logoff),
-            ("Adicionar ao Admin", self._usr_add_admin),
-            ("Listar Usuários",    lambda: self._cmd("net user", "Listar Usuários")),
-        ])
-
-    def _grupo_servicos(self):
-        self.log("SEP", "SEP")
-        self.log("MÓDULO: SERVIÇOS", "INFO")
-        self._abrir_painel("⚙  Serviços", [
-            ("Top 5 Processos CPU",  self._svc_processos_pesados),
-            ("Top 5 Processos RAM",  self._svc_processos_ram),
-            ("Gerenciador de Serv.", lambda: self._cmd("services.msc", "Serviços")),
-            ("Event Viewer",         lambda: self._cmd("eventvwr.msc", "Event Viewer")),
-            ("Eventos Críticos",     self._svc_eventos_criticos),
-        ])
-
-    def _grupo_diagnostico(self):
-        self.log("SEP", "SEP")
-        self.log("MÓDULO: DIAGNÓSTICO", "INFO")
-        self._abrir_painel("🔬  Diagnóstico", [
-            ("Saúde do Sistema",   self._diag_saude),
-            ("Verificar Drivers",  self._diag_drivers),
-            ("Teste de Memória",   lambda: self._cmd("mdsched", "Memória")),
-            ("SMART de Disco",     self._diag_smart),
-            ("Tempo de Boot",      self._diag_boot_time),
-        ])
-
-    def _grupo_ferramentas(self):
-        self.log("SEP", "SEP")
-        self.log("MÓDULO: FERRAMENTAS", "INFO")
-        self._abrir_painel("🛠  Ferramentas", [
-            ("Painel de Controle", lambda: self._cmd("control", "Painel")),
-            ("Gerenc. de Tarefas", lambda: self._cmd("taskmgr", "TaskMgr")),
-            ("Editor do Registro", lambda: self._cmd("regedit", "Regedit")),
-            ("Gerar Relatório",    self._fer_relatorio),
-            ("Abrir Log Externo",  self._fer_abrir_log),
-        ])
+        texto, cor = self._net_status_cache
+        self.after(0, lambda: self._net_card.update(texto, cor))
 
     # ─────────────────────────────────────────────
     #  IMPLEMENTAÇÕES — REDE
     # ─────────────────────────────────────────────
-    def _rede_status(self):
-        def run():
-            self.log("Verificando conectividade...")
-            ping = subprocess.run(
-                "ping -n 1 8.8.8.8", shell=True,
+    @staticmethod
+    def _parse_ssid(texto: str) -> str:
+        """
+        Extrai o SSID do output de 'netsh wlan show interfaces'.
+        Suporta PT-BR ("SSID") e EN ("SSID") e qualquer quantidade de espaços/tabs.
+        Ignora linhas com BSSID.
+        """
+        for linha in texto.splitlines():
+            linha_strip = linha.strip()
+            # Ignora BSSID
+            if "BSSID" in linha_strip:
+                continue
+            # Aceita "SSID" seguido de espaços, dois-pontos e o valor
+            m = re.match(r"^SSID\s*:\s*(.+)$", linha_strip, re.IGNORECASE)
+            if m:
+                return m.group(1).strip()
+        return "—"
+
+    @staticmethod
+    def _netsh(args: str) -> str:
+        """
+        Roda netsh e decodifica corretamente.
+        Windows BR moderno usa CP1252 (ANSI); sistemas mais antigos CP850.
+        Tenta na ordem: cp1252 -> cp850 -> mbcs -> utf-8.
+        """
+        try:
+            r = subprocess.run(
+                f"netsh {args}", shell=True,
                 capture_output=True, creationflags=CREATE_NO_WINDOW
             )
-            internet = ping.returncode == 0
+            raw = r.stdout
+        except Exception:
+            return ""
+        for enc in ("cp1252", "cp850", "mbcs", "utf-8"):
+            try:
+                return raw.decode(enc, errors="strict")
+            except (UnicodeDecodeError, LookupError):
+                continue
+        return raw.decode("utf-8", errors="replace")
 
-            wifi = subprocess.run(
-                "netsh wlan show interfaces", shell=True,
-                capture_output=True, text=True,
-                encoding="utf-8", errors="ignore",
-                creationflags=CREATE_NO_WINDOW
+    def _rede_status(self):
+        def run():
+            self.log("─── Status de Conexão de Rede ───", "SEP")
+
+            # ── Teste de conectividade básica ──
+            ping1 = subprocess.run(
+                "ping -n 1 -w 2000 8.8.8.8", shell=True,
+                capture_output=True, creationflags=CREATE_NO_WINDOW
             )
-            ssid = "—"
-            tipo = "Cabo (Ethernet)"
-            if " SSID" in wifi.stdout:
-                tipo = "Wi-Fi"
-                for l in wifi.stdout.split("\n"):
-                    if " SSID" in l and "BSSID" not in l:
-                        ssid = l.split(":", 1)[1].strip()
+            internet = ping1.returncode == 0
+            self.log(f"Internet (8.8.8.8)  : {'ONLINE' if internet else 'OFFLINE'}",
+                     "OK" if internet else "ERRO")
+
+            # ── Resolução DNS ──
+            dns_res = subprocess.run(
+                "ping -n 1 -w 2000 google.com", shell=True,
+                capture_output=True, creationflags=CREATE_NO_WINDOW
+            )
+            dns_ok = dns_res.returncode == 0
+            self.log(f"Resolução DNS       : {'OK' if dns_ok else 'FALHA'}",
+                     "OK" if dns_ok else "ERRO")
+
+            # ── Tipo de conexão e SSID ──
+            iface_txt = self._netsh("wlan show interfaces")
+            ssid = self._parse_ssid(iface_txt)
+            eh_wifi = ssid != "—"
+            tipo = "Wi-Fi" if eh_wifi else "Cabo (Ethernet)"
+            self.log(f"Tipo de conexão     : {tipo}")
+            if eh_wifi:
+                self.log(f"SSID                : {ssid}")
+
+                # Sinal Wi-Fi
+                for linha in iface_txt.splitlines():
+                    ls = linha.strip()
+                    if re.match(r"^Sinal\s*:|^Signal\s*:", ls, re.IGNORECASE):
+                        sinal = ls.split(":", 1)[1].strip()
+                        self.log(f"Sinal               : {sinal}")
                         break
 
-            self.log(f"Internet   : {'ONLINE' if internet else 'OFFLINE'}",
-                     "OK" if internet else "ERRO")
-            self.log(f"Conexão    : {tipo}")
-            self.log(f"SSID       : {ssid}")
+            # ── IP local ──
+            try:
+                import socket
+                ip_local = socket.gethostbyname(socket.gethostname())
+                self.log(f"IP local            : {ip_local}")
+            except Exception:
+                pass
 
-            res = subprocess.run(
-                "ping -n 4 8.8.8.8", shell=True,
-                capture_output=True, text=True,
-                encoding="utf-8", errors="ignore",
-                creationflags=CREATE_NO_WINDOW
-            )
-            for l in res.stdout.split("\n"):
-                if "Média" in l or "Average" in l:
-                    self.log(f"Latência   : {l.strip()}")
-                    break
+            # ── Latência média (4 pings) ──
+            if internet:
+                ping4 = subprocess.run(
+                    "ping -n 4 -w 2000 8.8.8.8", shell=True,
+                    capture_output=True, creationflags=CREATE_NO_WINDOW
+                )
+                raw4 = ping4.stdout.decode("cp1252", errors="replace")
+                for l in raw4.splitlines():
+                    # PT-BR: "Média = Xms"  |  EN: "Average = Xms"
+                    if re.search(r"(M[eé]dia|Average)\s*=", l, re.IGNORECASE):
+                        self.log(f"Latência média      : {l.strip()}")
+                        break
 
         self._run(run, "Status de Rede")
 
     def _rede_wifi_salvas(self):
         def run():
             self.log("Listando perfis Wi-Fi salvos...")
-            iface = subprocess.run(
-                "netsh wlan show interfaces", shell=True,
-                capture_output=True, text=True,
-                encoding="utf-8", errors="ignore",
-                creationflags=CREATE_NO_WINDOW
-            ).stdout
-            ssid_atual = ""
-            for l in iface.split("\n"):
-                if " SSID" in l and "BSSID" not in l:
-                    ssid_atual = l.split(":", 1)[1].strip()
-                    break
 
-            res = subprocess.run(
-                "netsh wlan show profiles", shell=True,
-                capture_output=True, text=True,
-                encoding="utf-8", errors="ignore",
+            # Usa PowerShell para evitar problemas de encoding do netsh
+            # (netsh usa CP1252/CP850 que pode corromper nomes acentuados)
+            ps_script = (
+                "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8;"
+                "(netsh wlan show profiles) -split '\n' | "
+                "ForEach-Object { $_ } | "
+                "Out-String"
+            )
+            b64 = base64.b64encode(ps_script.encode("utf-16le")).decode()
+            r = subprocess.run(
+                f"powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand {b64}",
+                shell=True, capture_output=True,
                 creationflags=CREATE_NO_WINDOW
-            ).stdout
+            )
+            perfis_txt = r.stdout.decode("utf-8", errors="replace")
 
-            perfis = re.findall(r"(?:Perfil de Todos os Usuários|All User Profile)\s*:\s*(.*)", res)
+            # Se PS falhou, tenta netsh direto com múltiplos encodings
+            if not perfis_txt.strip():
+                perfis_txt = self._netsh("wlan show profiles")
+
+            # Extrai nomes: a linha pode ter qualquer rótulo dependendo do idioma do SO,
+            # mas SEMPRE termina com  ": <nome da rede>"  após dois pontos.
+            # Estratégia: pega todas as linhas que contêm " : " e não são cabeçalhos/vazias,
+            # filtrando apenas as linhas de perfil (que aparecem indentadas com espaço).
+            perfis = []
+            for linha in perfis_txt.splitlines():
+                # Linhas de perfil são sempre indentadas e têm formato "  Rótulo : Valor"
+                if not linha.startswith(" ") and not linha.startswith("	"):
+                    continue
+                if ":" not in linha:
+                    continue
+                partes = linha.split(":", 1)
+                rotulo = partes[0].strip().lower()
+                valor  = partes[1].strip()
+                if not valor:
+                    continue
+                # Filtra rótulos conhecidos de perfil em PT-BR e EN
+                # (evita capturar outras linhas como "Interface: Wi-Fi")
+                eh_perfil = any(p in rotulo for p in (
+                    "perfil", "profile", "usu", "user"
+                ))
+                if eh_perfil:
+                    perfis.append(valor)
+
+            # Último fallback: regex clássico sem depender de rótulo
             if not perfis:
-                perfis = [x for x in re.findall(r":\s(.*)", res) if x.strip()]
+                perfis = re.findall(r":\s+([^\r\n]+)", perfis_txt)
+                # Remove linhas que são claramente cabeçalho/interface
+                perfis = [p.strip() for p in perfis
+                          if p.strip() and not re.match(
+                              r"(Interface|Adaptador|SSID|BSSID|Sinal|Signal|Autentica|Cifra|Tipo|Mode)", 
+                              p.strip(), re.IGNORECASE
+                          )]
+
+            perfis = list(dict.fromkeys(p for p in perfis if p))  # dedup mantendo ordem
+
+            # SSID atual via netsh interfaces (também via PS para encoding correto)
+            iface_txt  = self._netsh("wlan show interfaces")
+            ssid_atual = self._parse_ssid(iface_txt)
 
             if perfis:
                 for p in perfis:
-                    p = p.strip()
-                    nivel = "OK" if p == ssid_atual else "INFO"
-                    sufixo = " [CONECTADO]" if p == ssid_atual else ""
-                    self.log(f"  {p}{sufixo}", nivel)
-                self.log(f"Total: {len(perfis)} redes mapeadas.")
+                    conectado = (p == ssid_atual)
+                    sufixo = "  ◀ CONECTADO" if conectado else ""
+                    self.log(f"  {p}{sufixo}", "OK" if conectado else "INFO")
+                self.log(f"Total: {len(perfis)} rede(s) salva(s).")
+                if ssid_atual != "—":
+                    self.log(f"Rede atual: {ssid_atual}", "OK")
             else:
-                self.log("Nenhum perfil encontrado.", "WARN")
+                self.log("Nenhum perfil Wi-Fi encontrado (sem adaptador Wi-Fi ou sem redes salvas).", "WARN")
 
         self._run(run, "Wi-Fi Salvas")
 
@@ -880,18 +1270,59 @@ class SuporteTecnicoApp(ctk.CTk):
     def _rede_diagnostico(self):
         def run():
             self.log("Diagnóstico de rede completo...")
+
+            gateway = None
+            try:
+                gw_res = subprocess.run(
+                    'powershell -NoProfile -Command '
+                    '"(Get-NetRoute -DestinationPrefix \'0.0.0.0/0\' '
+                    '| Sort-Object RouteMetric | Select-Object -First 1).NextHop"',
+                    shell=True, capture_output=True, text=True,
+                    encoding="utf-8", errors="ignore",
+                    creationflags=CREATE_NO_WINDOW
+                )
+                gw_out = gw_res.stdout.strip()
+                if gw_out and re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", gw_out):
+                    gateway = gw_out
+            except Exception:
+                pass
+
+            if not gateway:
+                try:
+                    ipconf = subprocess.run(
+                        "ipconfig", shell=True, capture_output=True, text=True,
+                        encoding="utf-8", errors="ignore",
+                        creationflags=CREATE_NO_WINDOW
+                    ).stdout
+                    for line in ipconf.split("\n"):
+                        if "Gateway" in line or "gateway" in line:
+                            parts = line.split(":")
+                            if len(parts) > 1:
+                                candidate = parts[-1].strip()
+                                if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", candidate):
+                                    gateway = candidate
+                                    break
+                except Exception:
+                    pass
+
+            if gateway:
+                self.log(f"Gateway detectado: {gateway}", "INFO")
+            else:
+                gateway = "192.168.1.1"
+                self.log(f"Gateway não detectado automaticamente. Usando: {gateway}", "WARN")
+
             testes = [
-                ("Gateway",    "ping -n 2 192.168.1.1"),
-                ("DNS 8.8.8.8","ping -n 2 8.8.8.8"),
-                ("Google.com", "ping -n 2 google.com"),
+                (f"Gateway ({gateway})", f"ping -n 2 {gateway}"),
+                ("DNS 8.8.8.8",          "ping -n 2 8.8.8.8"),
+                ("Google.com",           "ping -n 2 google.com"),
             ]
-            for nome, cmd in testes:
+            for nome_teste, cmd in testes:
                 r = subprocess.run(
                     cmd, shell=True, capture_output=True,
                     creationflags=CREATE_NO_WINDOW
                 )
                 self.log(
-                    f"{nome:12}: {'OK' if r.returncode == 0 else 'FALHA'}",
+                    f"{nome_teste:22}: {'OK' if r.returncode == 0 else 'FALHA'}",
                     "OK" if r.returncode == 0 else "ERRO"
                 )
 
@@ -1013,15 +1444,21 @@ Remove-Item "C:\Windows\Temp\*"  -Recurse -Force
     # ─────────────────────────────────────────────
     def _svc_processos_pesados(self):
         def run():
-            for p in psutil.process_iter():
-                try: p.cpu_percent(None)
-                except: pass
-            time.sleep(1.2)
-            procs = []
+            self.log("Coletando uso de CPU (aguarde ~1s)...")
+            procs_obj = []
             for p in psutil.process_iter(["name", "pid"]):
                 try:
-                    procs.append((p.info["name"], p.info["pid"], p.cpu_percent(interval=0.1)))
-                except:
+                    p.cpu_percent(interval=None)
+                    procs_obj.append(p)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+            time.sleep(1.0)
+            procs = []
+            for p in procs_obj:
+                try:
+                    cpu = p.cpu_percent(interval=None)
+                    procs.append((p.info["name"], p.info["pid"], cpu))
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
             top = sorted(procs, key=lambda x: x[2], reverse=True)[:5]
             self.log("Top 5 por CPU:")
@@ -1040,7 +1477,7 @@ Remove-Item "C:\Windows\Temp\*"  -Recurse -Force
                 try:
                     mb = p.info["memory_info"].rss / 1024 / 1024
                     procs.append((p.info["name"], p.info["pid"], mb))
-                except:
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
             top = sorted(procs, key=lambda x: x[2], reverse=True)[:5]
             self.log("Top 5 por RAM:")
@@ -1090,7 +1527,7 @@ Select-Object TimeCreated, Id, Message | Format-Table -AutoSize
                 score -= 20
                 alertas.append("Falha na resolução DNS")
 
-            cpu = psutil.cpu_percent(interval=1)
+            cpu = psutil.cpu_percent(interval=0.5)
             if cpu > 90:
                 score -= 15
                 alertas.append(f"CPU crítico: {cpu:.0f}%")
@@ -1190,6 +1627,28 @@ Select-Object InstanceName, PredictFailure, Reason | Format-List
         self._run(run, "Abrir Log")
 
     # ─────────────────────────────────────────────
+    #  ATIVAÇÃO WINDOWS / OFFICE (MAS)
+    # ─────────────────────────────────────────────
+    def _ativar_windows_office(self):
+        def run():
+            self.log("Iniciando ativação do Windows/Office...", "INFO")
+            self.log("Script: irm https://get.activated.win | iex", "CMD")
+            self.log("Abrindo janela do PowerShell — siga as instruções na tela.", "WARN")
+            try:
+                subprocess.Popen(
+                    'powershell -NoProfile -ExecutionPolicy Bypass -Command '
+                    '"irm https://get.activated.win | iex"',
+                    shell=True,
+                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                )
+                self.log("Script de ativação aberto em janela separada.", "OK")
+                self.log("Aguarde a conclusão na janela do PowerShell.", "INFO")
+            except Exception as e:
+                self.log(f"Erro ao iniciar ativação: {e}", "ERRO")
+
+        self._run(run, "Ativar Windows/Office")
+
+    # ─────────────────────────────────────────────
     #  CONTROLES DE LOG
     # ─────────────────────────────────────────────
     def _limpar_log(self):
@@ -1205,7 +1664,78 @@ Select-Object InstanceName, PredictFailure, Reason | Format-List
     #  TEMA
     # ─────────────────────────────────────────────
     def _mudar_tema(self, tema: str):
-        ctk.set_appearance_mode(tema)
+        global CORES
+
+        ctk_mode = {"Dark": "Dark", "Light": "Light", "Azul": "Dark", "Verde": "Dark"}.get(tema, "Dark")
+        ctk.set_appearance_mode(ctk_mode)
+
+        if tema in TEMAS_CORES:
+            CORES = TEMAS_CORES[tema]
+
+        self._tema_atual = tema
+        self._aplicar_tema_widgets()
+        self.log(f"Tema alterado para: {tema}", "INFO")
+
+    def _aplicar_tema_widgets(self):
+        self.configure(fg_color=CORES["bg_primary"])
+
+        # Sidebar
+        self._sidebar.configure(fg_color=CORES["sidebar_bg"])
+        self._sep_top.configure(fg_color=CORES["separator"])
+        self._sep_mid.configure(fg_color=CORES["separator"])
+        self._sep_bottom.configure(fg_color=CORES["separator"])
+        self._hostname_lbl.configure(text_color=CORES["text_muted"])
+
+        for btn in self._sidebar_buttons.values():
+            btn.refresh_colors()
+
+        self._tema_menu.configure(
+            fg_color=CORES["bg_tertiary"],
+            button_color=CORES["accent"],
+            button_hover_color=CORES["accent_hover"],
+        )
+
+        # Main
+        self._main.configure(fg_color=CORES["bg_primary"])
+
+        # Header
+        self._header_frame.configure(fg_color=CORES["bg_secondary"])
+        self._header_title.configure(text_color=CORES["text_primary"])
+        self._hora_lbl.configure(text_color=CORES["text_muted"])
+
+        # Stats
+        self._stats_bar.configure(fg_color=CORES["bg_secondary"])
+        for card in (self._cpu_card, self._ram_card, self._disk_card, self._net_card):
+            card.refresh_colors()
+
+        # Log
+        self._log_outer.configure(fg_color=CORES["bg_secondary"])
+        self._log_title.configure(text_color=CORES["text_secondary"])
+        self._log_text.configure(
+            fg_color=CORES["bg_primary"],
+            text_color=CORES["text_primary"]
+        )
+        self._reconfigure_log_tags()
+
+        for b in self._toolbar_btns:
+            b.configure(
+                fg_color=CORES["bg_tertiary"],
+                hover_color=CORES["border"],
+                text_color=CORES["text_secondary"],
+                border_color=CORES["border"],
+            )
+        self._auto_scroll_sw.configure(
+            text_color=CORES["text_muted"],
+            button_color=CORES["accent"],
+            progress_color=CORES["accent_soft"],
+        )
+
+        # Status bar
+        self._status_bar.configure(fg_color=CORES["bg_secondary"])
+        self._progress.configure(
+            progress_color=CORES["accent"],
+            fg_color=CORES["bg_tertiary"],
+        )
 
     # ─────────────────────────────────────────────
     #  UTILIDADES
