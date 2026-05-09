@@ -47,7 +47,7 @@ TEMAS_CORES = {
         "success":        "#16a34a",
         "warning":        "#d97706",
         "danger":         "#dc2626",
-        "text_primary":   "#0f172a",
+        "text_primary":   "#0d1220",
         "text_secondary": "#334155",
         "text_muted":     "#94a3b8",
         "border":         "#cbd5e1",
@@ -512,8 +512,12 @@ class SuporteTecnicoApp(ctk.CTk):
 
         # Espaçador + tema
         ctk.CTkFrame(
-            self._sidebar, fg_color="transparent", corner_radius=0, border_width=0
-        ).pack(expand=True, fill="both")
+            self._sidebar,
+            fg_color="transparent",
+            height=170,
+            corner_radius=0,
+            border_width=0
+        ).pack(fill="x")
 
         self._sep_bottom = ctk.CTkFrame(
             self._sidebar, height=1,
@@ -530,15 +534,21 @@ class SuporteTecnicoApp(ctk.CTk):
             font=self.FONTES["pequena"],
             text_color=CORES["text_muted"]
         ).pack(side="left")
+        
         self._tema_menu = ctk.CTkOptionMenu(
             tema_frame,
             values=["Dark", "Light", "Azul", "Verde"],
             command=self._mudar_tema,
-            width=108, height=26,
+            width=80,
+            height=30,
             font=self.FONTES["pequena"],
             fg_color=CORES["bg_tertiary"],
             button_color=CORES["accent"],
             button_hover_color=CORES["accent_hover"],
+
+            text_color=CORES["text_primary"],
+            dropdown_text_color=CORES["text_primary"],
+            dropdown_fg_color=CORES["bg_secondary"],
         )
         self._tema_menu.set("Dark")
         self._tema_menu.pack(side="right")
@@ -1693,6 +1703,9 @@ Select-Object InstanceName, PredictFailure, Reason | Format-List
             fg_color=CORES["bg_tertiary"],
             button_color=CORES["accent"],
             button_hover_color=CORES["accent_hover"],
+            text_color=CORES["text_primary"],
+            dropdown_text_color=CORES["text_primary"],
+            dropdown_fg_color=CORES["bg_secondary"],
         )
 
         # Main
@@ -1750,6 +1763,14 @@ Select-Object InstanceName, PredictFailure, Reason | Format-List
 #  ENTRY POINT
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
+    # Oculta a janela do console (tela preta tipo CMD) imediatamente
+    try:
+        hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+        if hwnd:
+            ctypes.windll.user32.ShowWindow(hwnd, 0)  # SW_HIDE = 0
+    except Exception:
+        pass
+
     if is_admin():
         app = SuporteTecnicoApp()
         app.mainloop()
